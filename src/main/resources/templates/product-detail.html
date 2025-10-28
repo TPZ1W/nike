@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/client}">
+
+<th:block layout:fragment="page_head">
+    <link rel="stylesheet" href="/css/products.css">
+    <link rel="stylesheet" href="/css/product-detail.css">
+</th:block>
+
+<body>
+<th:block layout:fragment="content">
+    <div class="product-detail-container">
+        <!-- Success/Error Messages -->
+        <div id="success-message" class="success-message">
+            <i class="fas fa-check-circle"></i>
+            <span id="success-text">Đã thêm sản phẩm vào giỏ hàng thành công!</span>
+        </div>
+        <div id="error-message" class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="error-text">Có lỗi xảy ra. Vui lòng thử lại!</span>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="product-image-gallery">
+                    <!-- Main Image -->
+                    <img id="main-image"
+                         th:src="${(product.images != null and !#lists.isEmpty(product.images)) ?
+                (#strings.startsWith(product.images[0], 'data:image') ? product.images[0] : '/img/products/' + product.images[0])
+                : '/img/products/default-product.jpg'}"
+                         th:alt="${product.name}" style="width: 500px; height: 500px; object-fit: cover;"
+                         class="img-fluid main-image border rounded shadow-sm">
+
+                    <!-- Thumbnails -->
+                    <div class="image-thumbnails d-flex flex-wrap mt-3 gap-2 justify-content-start">
+                        <img th:each="img, iStat : ${product.images}"
+                             th:src="${#strings.startsWith(img, 'data:image') ? img : '/img/products/' + img}"
+                             th:alt="'Thumbnail ' + ${iStat.index + 1}"
+                             class="thumbnail-img border rounded"
+                             style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;"
+                             th:classappend="${iStat.index == 0} ? 'active' : ''"
+                             onclick="changeMainImage(this)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="product-details">
+                    <h1 id="product-name" class="product-name" th:text="${product.name}"></h1>
+                    <p id="product-subtitle" class="text-muted" th:text="${product.subTitle}"></p>
+                    <div id="product-price" class="product-price"
+                         th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' ₫'">
+                    </div>
+
+                    <div class="product-description">
+                        <h5>Mô tả sản phẩm</h5>
+                        <p id="product-description" th:text="${product.description}"></p>
+                    </div>
+
+                    <!-- Size selection -->
+                    <div class="size-selection mt-3">
+                        <h5>Chọn size</h5>
+                        <div class="size-options d-flex flex-wrap gap-2" id="size-options">
+                            <button type="button"
+                                    class="size-btn"
+                                    th:each="size : ${sizes}"
+                                    th:data-size="${size.name()}"
+                                    th:text="${#strings.substring(size.name(), 5)}">
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quantity controls -->
+                    <div class="quantity-section mt-3">
+                        <h5>Số lượng</h5>
+                        <div class="quantity-controls d-flex align-items-center gap-2">
+                            <button type="button" class="quantity-btn" id="decrease-qty">−</button>
+                            <input type="number" id="quantity-input" class="quantity-input" value="1" min="1" max="99">
+                            <button type="button" class="quantity-btn" id="increase-qty">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Add to cart -->
+                    <div class="product-actions mt-4">
+                        <button id="add-to-cart-btn" class="btn-add-to-cart" disabled>
+                            <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ hàng
+                        </button>
+                        <button class="btn-wishlist">
+                            <i class="far fa-heart"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviews Section -->
+        <div class="reviews-section">
+            <div class="reviews-header">
+                <h3>Đánh giá sản phẩm</h3>
+                <div class="reviews-summary">
+                    <div class="average-rating" id="average-rating">0.0</div>
+                    <div class="stars-display" id="stars-display">☆☆☆☆☆</div>
+                    <div class="total-reviews" id="total-reviews">0 đánh giá</div>
+                </div>
+            </div>
+
+            <!-- Review Form (only for logged-in users) -->
+            <div id="review-form-container" style="display: none;">
+                <div class="review-form">
+                    <h5>Viết đánh giá của bạn</h5>
+                    <form id="review-form">
+                        <div class="mb-3">
+                            <label class="form-label">Đánh giá:</label>
+                            <div class="star-rating" id="star-rating">
+                                <span class="star" data-rating="1">★</span>
+                                <span class="star" data-rating="2">★</span>
+                                <span class="star" data-rating="3">★</span>
+                                <span class="star" data-rating="4">★</span>
+                                <span class="star" data-rating="5">★</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="review-title" placeholder="Tiêu đề (tùy chọn)">
+                        </div>
+                        <div class="mb-3">
+                            <textarea class="review-textarea" id="review-comment"
+                                      placeholder="Chia sẻ trải nghiệm của bạn..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Gửi đánh giá</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Login Prompt (for guests) -->
+            <div id="login-prompt" class="text-center p-3" style="background: #f8f9fa; border-bottom: 1px solid #eee;">
+                <p class="mb-0">Bạn cần <a href="/login">đăng nhập</a> để có thể viết đánh giá và bình luận.</p>
+            </div>
+
+            <!-- Reviews List -->
+            <div id="reviews-list" class="reviews-list">
+                <div class="no-reviews">
+                    <i class="fas fa-comments"></i>
+                    <p>Chưa có đánh giá nào cho sản phẩm này.</p>
+                    <p>Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        function changeMainImage(thumbnail) {
+            const mainImg = document.getElementById("main-image");
+            const allThumbs = document.querySelectorAll(".thumbnail-img");
+
+            allThumbs.forEach(img => img.classList.remove("active"));
+            thumbnail.classList.add("active");
+
+            mainImg.src = thumbnail.src;
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+
+            // Elements
+            const sizeButtons = document.querySelectorAll(".size-btn");
+            const qtyInput = document.getElementById("quantity-input");
+            const decreaseBtn = document.getElementById("decrease-qty");
+            const increaseBtn = document.getElementById("increase-qty");
+            const addToCartBtn = document.getElementById("add-to-cart-btn");
+
+            // State
+            let selectedSize = null;
+
+            // 🟢 Select size
+            sizeButtons.forEach(btn => {
+                btn.addEventListener("click", () => {
+                    sizeButtons.forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    selectedSize = btn.getAttribute("data-size");
+                    updateAddButtonState();
+                });
+            });
+
+
+            // 🟢 Quantity control
+            decreaseBtn.addEventListener("click", () => {
+                let val = parseInt(qtyInput.value);
+                if (val > 1) qtyInput.value = val - 1;
+            });
+
+            increaseBtn.addEventListener("click", () => {
+                let val = parseInt(qtyInput.value);
+                if (val < 99) qtyInput.value = val + 1;
+            });
+
+            // 🟢 Enable Add to Cart button only when both selected
+            function updateAddButtonState() {
+                addToCartBtn.disabled = !(selectedSize);
+            }
+
+            // 🟢 Add to Cart
+            addToCartBtn.addEventListener("click", async () => {
+                const qty = parseInt(qtyInput.value);
+
+                const data = {
+                    productId: [[${product.id}]], // Thymeleaf injects product ID
+                    size: selectedSize,
+                    quantity: qty
+                };
+                try {
+                    const response = await fetch("/api/v1/carts/add", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.status === true || result.status === "✅ Thêm vào giỏ hàng thành công") {
+                        alert("🛒 " + (result.status || "Thêm vào giỏ hàng thành công!"));
+                    } else {
+                        alert("❌ " + (result.message || "Không thể thêm vào giỏ hàng."));
+                    }
+                } catch (error) {
+                    console.error("❌ Lỗi khi gọi API thêm giỏ hàng:", error);
+                    alert("Đã xảy ra lỗi khi thêm sản phẩm vào giỏ hàng.");
+                }
+
+            });
+        });
+    </script>
+
+</th:block>
+</body>
+</html>

@@ -1,0 +1,38 @@
+package com.proj.webprojrct.order.controller;
+
+import com.proj.webprojrct.order.entity.Order;
+import com.proj.webprojrct.order.service.OrderService;
+import com.proj.webprojrct.user.entity.User;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/v1/orders")
+public class OrderController {
+    private final OrderService orderService;
+
+    @PostMapping("checkout")
+    public Object createOrder(@AuthenticationPrincipal User user, @RequestBody OrderRequest order) {
+        orderService.placeOrder(user, order);
+        return Map.of("status", "✅ Đặt hàng thành công");
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class OrderRequest {
+        private String shippingAddress;
+        private String paymentMethod;
+        private String phone;
+    }
+
+}

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/client}">
+
+<th:block layout:fragment="page_head">
+    <title>Giỏ hàng của bạn</title>
+    <style>
+        .cart-container {
+            max-width: 1100px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+
+        .cart-item img {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .cart-info {
+            flex: 1;
+            margin-left: 20px;
+        }
+
+        .cart-info h5 {
+            margin: 0;
+            font-size: 17px;
+        }
+
+        .cart-info p {
+            color: #777;
+            margin: 4px 0;
+        }
+
+        .cart-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cart-actions input[type="number"] {
+            width: 70px;
+            text-align: center;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            padding: 4px;
+        }
+
+        .cart-summary {
+            margin-top: 25px;
+            text-align: right;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .btn-checkout {
+            background: #2f80ed;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-checkout:hover {
+            background: #1c5ec9;
+        }
+
+        .empty-cart {
+            text-align: center;
+            padding: 60px 0;
+            color: #888;
+        }
+
+        .empty-cart i {
+            font-size: 50px;
+            color: #ccc;
+        }
+    </style>
+</th:block>
+
+<body>
+<th:block layout:fragment="content">
+    <div class="cart-container">
+        <div class="cart-header">
+            <h2><i class="fa fa-shopping-cart text-primary"></i> Giỏ hàng của bạn</h2>
+            <a th:href="@{/products}" class="btn btn-outline-secondary">Tiếp tục mua sắm</a>
+        </div>
+
+        <!-- Nếu giỏ hàng trống -->
+        <div th:if="${cart == null or #lists.isEmpty(cart.items)}" class="empty-cart">
+            <i class="fa fa-shopping-basket"></i>
+            <h4>Giỏ hàng của bạn đang trống</h4>
+            <a th:href="@{/products}" class="btn btn-primary mt-3">Mua ngay</a>
+        </div>
+
+        <!-- Nếu có sản phẩm -->
+        <div th:if="${cart != null and !#lists.isEmpty(cart.items)}">
+            <div th:each="item : ${cart.items}" class="cart-item" th:data-id="${item.product.getId()}">
+                <img th:src="${item.getProduct()?.getImages() != null ? item.getProduct().getImages().get(0) : '/images/no-image.png'}" alt="Sản phẩm">
+                <div class="cart-info">
+                    <h5 th:text="${item.getProduct().getName()}"></h5>
+                    <p>Giá: <span th:text="${#numbers.formatDecimal(item.getProductPrice(), 0, 'COMMA', 0, 'POINT')} + ' ₫'"></span></p>
+                    <p>Màu: <span th:text="${item.getProduct().getColor()}"></span> - Size: <span th:text="${item.getProduct().getSize()}"></span></p>
+                </div>
+
+                <div class="cart-actions">
+                    <input type="number" class="qty-input" min="1" th:value="${item.getQuantity()}">
+                    <button class="btn btn-sm btn-outline-primary btn-update">Cập nhật</button>
+                    <button class="btn btn-sm btn-outline-danger btn-remove">Xóa</button>
+                </div>
+            </div>
+
+            <!-- Breakdown giá tiền -->
+            <div class="price-breakdown">
+                <div class="price-row">
+                    <span>Tạm tính (<span id="totalQuantity" th:text="${cart.totalQuantity}"></span> sản phẩm):</span>
+                    <span id="subtotal" th:text="${#numbers.formatDecimal(cart.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></span>
+                </div>
+                <div class="price-row total">
+                    <span>Tổng cộng:</span>
+                    <span id="finalTotal" th:text="${#numbers.formatDecimal(cart.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></span>
+                </div>
+            </div>
+
+            <!-- Nút thanh toán -->
+            <div class="cart-summary">
+                <a th:href="@{/orders/checkout}" class="btn-checkout">
+                    <i class="fa fa-credit-card me-2"></i>Thanh toán
+                </a>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const cartItems = document.querySelectorAll(".cart-item");
+            
+            // 🧩 Hàm gọi API chung
+            const callApi = async (url, method, body = null) => {
+                try {
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: body ? JSON.stringify(body) : null
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.json().catch(() => ({}));
+                } catch (err) {
+                    console.error(err);
+                    alert("❌ Lỗi khi xử lý!");
+                }
+            };
+
+            // 🧩 Cập nhật số lượng sản phẩm
+            document.querySelectorAll(".btn-update").forEach(btn => {
+                btn.addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    const parent = btn.closest(".cart-item");
+                    const productId = parent.dataset.id;
+                    const qty = parent.querySelector(".qty-input").value;
+
+                    const result = await callApi("/api/v1/carts/update", "PATCH", {
+                        productId: productId,
+                        quantity: parseInt(qty)
+                    });
+
+                    if (result) {
+                        alert("✅ Cập nhật số lượng thành công!");
+                        // Update cart count in header and reload page  
+                        if (window.updateHeaderCartCount) {
+                            window.updateHeaderCartCount();
+                        }
+                        window.location.reload();
+                    }
+                });
+            });
+
+            // 🧩 Xóa sản phẩm
+            document.querySelectorAll(".btn-remove").forEach(btn => {
+                btn.addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    const parent = btn.closest(".cart-item");
+                    const productId = parent.dataset.id;
+
+                    if (!confirm("Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?")) return;
+
+                    const result = await callApi(`/api/v1/carts/remove/${productId}`, "DELETE");
+                    if (result !== undefined) {
+                        alert("🗑️ Đã xóa sản phẩm khỏi giỏ hàng!");
+                        // Update cart count in header and reload page
+                        if (window.updateHeaderCartCount) {
+                            window.updateHeaderCartCount();
+                        }
+                        window.location.reload();
+                    }
+                });
+            });
+
+            // 🧩 Auto-update quantities when typing
+            document.querySelectorAll(".qty-input").forEach(input => {
+                input.addEventListener("change", (e) => {
+                    const parent = e.target.closest(".cart-item");
+                    const updateBtn = parent.querySelector(".btn-update");
+                    if (updateBtn) {
+                        updateBtn.style.background = "#28a745";
+                        updateBtn.textContent = "Lưu";
+                    }
+                });
+            });
+
+            // 🧩 Calculate and update totals in real-time
+            const updateCartTotals = () => {
+                let subtotal = 0;
+                let totalQuantity = 0;
+
+                document.querySelectorAll(".cart-item").forEach(item => {
+                    const priceText = item.querySelector(".cart-info p:first-of-type span").textContent;
+                    const price = parseFloat(priceText.replace(/[^\d]/g, ''));
+                    const qtyInput = item.querySelector(".qty-input");
+                    const quantity = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+                    
+                    subtotal += price * quantity;
+                    totalQuantity += quantity;
+                });
+
+                // Update DOM
+                const subtotalElement = document.getElementById("subtotal");
+                const totalQuantityElement = document.getElementById("totalQuantity");
+                const finalTotalElement = document.getElementById("finalTotal");
+                const headerCartCount = document.getElementById("headerCartCount");
+
+                if (subtotalElement) {
+                    subtotalElement.textContent = formatCurrency(subtotal);
+                }
+                
+                if (totalQuantityElement) {
+                    totalQuantityElement.textContent = totalQuantity;
+                }
+
+                if (finalTotalElement) {
+                    finalTotalElement.textContent = formatCurrency(subtotal);
+                }
+
+                // Update header cart count
+                if (headerCartCount) {
+                    headerCartCount.textContent = totalQuantity;
+                }
+            };
+
+            // 🧩 Utility function
+            const formatCurrency = (amount) => {
+                return new Intl.NumberFormat('vi-VN').format(amount) + " ₫";
+            };
+
+            // 🧩 Initial calculation on page load
+            updateCartTotals();
+
+            // 🧩 Listen for quantity changes
+            document.querySelectorAll(".qty-input").forEach(input => {
+                input.addEventListener("input", updateCartTotals);
+                input.addEventListener("change", (e) => {
+                    const parent = e.target.closest(".cart-item");
+                    const updateBtn = parent.querySelector(".btn-update");
+                    if (updateBtn) {
+                        updateBtn.style.background = "#28a745";
+                        updateBtn.textContent = "Lưu";
+                    }
+                    updateCartTotals();
+                });
+            });
+        });
+    </script>
+</th:block>
+</body>
+</html>

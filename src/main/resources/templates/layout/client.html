@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title th:text="${pageTitle ?: 'Trang chủ'} + ' | NiceStore'">Trang chủ | NiceStore</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        /* Nike-inspired Design System */
+        :root {
+            --nike-black: #111111;
+            --nike-white: #FFFFFF;
+            --nike-gray: #757575;
+            --nike-light-gray: #F5F5F5;
+            --nike-orange: #FA5400;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: var(--nike-black);
+            background-color: var(--nike-white);
+            line-height: 1.5;
+        }
+
+        /* Top Bar */
+        .nike-top-bar {
+            background-color: var(--nike-light-gray);
+            height: 36px;
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .nike-top-bar a {
+            color: var(--nike-black);
+            text-decoration: none;
+            padding: 0 12px;
+            border-right: 1px solid #ccc;
+        }
+
+        .nike-top-bar a:last-child {
+            border-right: none;
+        }
+
+        .nike-top-bar a:hover {
+            color: var(--nike-gray);
+        }
+
+        /* Main Header */
+        .nike-header {
+            background-color: var(--nike-white);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .nike-nav {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+        }
+
+        .nike-logo {
+            font-size: 40px;
+            font-weight: 800;
+            color: var(--nike-black);
+            text-decoration: none;
+            letter-spacing: -2px;
+        }
+
+        .nike-menu {
+            display: flex;
+            list-style: none;
+            gap: 24px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nike-menu li a {
+            color: var(--nike-black);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            padding: 20px 0;
+            display: inline-block;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .nike-menu li a:hover {
+            border-bottom-color: var(--nike-black);
+        }
+
+        .nike-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nike-search {
+            background-color: var(--nike-light-gray);
+            border: none;
+            border-radius: 100px;
+            padding: 8px 16px;
+            width: 180px;
+            font-size: 14px;
+        }
+
+        .nike-icon-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--nike-black);
+            cursor: pointer;
+            padding: 8px;
+            position: relative;
+        }
+
+        .nike-cart-count {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: var(--nike-orange);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Hero Section */
+        .nike-hero {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 96px);
+            min-height: 600px;
+            overflow: hidden;
+            background-color: var(--nike-light-gray);
+        }
+
+        .nike-hero-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .nike-hero-content {
+            position: absolute;
+            bottom: 80px;
+            left: 60px;
+            max-width: 600px;
+            color: var(--nike-white);
+        }
+
+        .nike-hero-title {
+            font-size: 72px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .nike-hero-subtitle {
+            font-size: 20px;
+            font-weight: 400;
+            margin-bottom: 32px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .nike-btn {
+            background-color: var(--nike-black);
+            color: var(--nike-white);
+            border: none;
+            border-radius: 30px;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+
+        .nike-btn:hover {
+            background-color: var(--nike-gray);
+            color: var(--nike-white);
+            transform: scale(1.02);
+        }
+
+        .nike-btn-white {
+            background-color: var(--nike-white);
+            color: var(--nike-black);
+        }
+
+        .nike-btn-white:hover {
+            background-color: #e5e5e5;
+            color: var(--nike-black);
+        }
+
+        /* Section Spacing */
+        .nike-section {
+            padding: 80px 40px;
+        }
+
+        .nike-section-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+        }
+
+        /* Featured Products Grid */
+        .nike-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .nike-card {
+            background-color: var(--nike-white);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .nike-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .nike-card-img-wrapper {
+            width: 100%;
+            padding-top: 100%;
+            position: relative;
+            background-color: var(--nike-light-gray);
+            overflow: hidden;
+        }
+
+        .nike-card-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .nike-card-body {
+            padding: 24px 0;
+        }
+
+        .nike-card-badge {
+            color: var(--nike-orange);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .nike-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--nike-black);
+            margin-bottom: 4px;
+        }
+
+        .nike-card-subtitle {
+            font-size: 15px;
+            color: var(--nike-gray);
+            margin-bottom: 12px;
+        }
+
+        .nike-card-price {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--nike-black);
+        }
+
+        /* Large Banner */
+        .nike-banner {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            margin-bottom: 80px;
+            overflow: hidden;
+        }
+
+        .nike-banner-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .nike-banner-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--nike-white);
+        }
+
+        .nike-banner-title {
+            font-size: 64px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            margin-bottom: 24px;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .nike-banner-text {
+            font-size: 18px;
+            margin-bottom: 32px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Categories */
+        .nike-categories {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 80px;
+        }
+
+        .nike-category {
+            position: relative;
+            height: 540px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .nike-category-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+
+        .nike-category:hover .nike-category-img {
+            transform: scale(1.05);
+        }
+
+        .nike-category-content {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+        }
+
+        .nike-category-btn {
+            background-color: var(--nike-white);
+            color: var(--nike-black);
+            border: none;
+            border-radius: 30px;
+            padding: 10px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nike-category-btn:hover {
+            background-color: #e5e5e5;
+            color: var(--nike-black);
+        }
+
+        /* Footer */
+        .nike-footer {
+            background-color: var(--nike-black);
+            color: var(--nike-white);
+            padding: 60px 40px 40px;
+        }
+
+        .nike-footer-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .nike-footer-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            color: var(--nike-gray);
+        }
+
+        .nike-footer-links {
+            list-style: none;
+            padding: 0;
+        }
+
+        .nike-footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .nike-footer-links a {
+            color: var(--nike-gray);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+
+        .nike-footer-links a:hover {
+            color: var(--nike-white);
+        }
+
+        .nike-footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 40px;
+            border-top: 1px solid #333;
+            font-size: 12px;
+            color: var(--nike-gray);
+        }
+
+        .nike-social {
+            display: flex;
+            gap: 16px;
+        }
+
+        .nike-social a {
+            color: var(--nike-gray);
+            font-size: 20px;
+            transition: color 0.2s;
+            text-decoration: none;
+        }
+
+        .nike-social a:hover {
+            color: var(--nike-white);
+        }
+
+        /* Responsive */
+        @media (max-width: 960px) {
+            .nike-nav {
+                padding: 0 20px;
+            }
+
+            .nike-menu {
+                display: none;
+            }
+
+            .nike-hero-title {
+                font-size: 48px;
+            }
+
+            .nike-hero-content {
+                left: 20px;
+                bottom: 40px;
+            }
+
+            .nike-categories {
+                grid-template-columns: 1fr;
+            }
+
+            .nike-footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+    <script th:src="@{/plugins/jQuery/jQuery-2.2.0.min.js}"></script>
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+    <th:block layout:fragment="page_head"></th:block>
+</head>
+<body>
+<div class="nike-top-bar">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between">
+            <div>
+                <a href="#"><i class="fas fa-map-marker-alt me-1"></i> Tìm cửa hàng</a>
+                <a href="#">Trợ giúp</a>
+            </div>
+            <div id="auth-section">
+                <a href="/register" class="auth-anon">Tham gia</a>
+                <a href="/login" class="auth-anon">Đăng nhập</a>
+                <a href="#" id="user-info" class="auth-user" style="display: none;">
+                    Xin chào, <span id="username">User</span>
+                </a>
+                <a href="#" id="logout-btn" class="auth-user" style="display: none;">Đăng xuất</a>
+            </div>
+        </div>
+    </div>
+</div>
+<header class="nike-header">
+    <nav class="nike-nav container-fluid">
+        <a href="/" class="nike-logo">NICESTORE</a>
+
+        <ul class="nike-menu" id="menuList">
+            <li><a href="/products">Sản phẩm</a></li>
+            <li><a href="/men/shoes">Nam</a></li>
+            <li><a href="/women/shoes">Nữ</a></li>
+            <li><a href="/products?category=kids">Trẻ em</a></li>
+            <li><a href="/products?sale=true">Sale</a></li>
+        </ul>
+
+        <div class="nike-actions">
+            <a href="/carts" class="nike-icon-btn">
+                <i class="fas fa-shopping-bag"></i>
+                <span class="nike-cart-count" id="headerCartCount">0</span>
+            </a>
+        </div>
+    </nav>
+</header>
+<div layout:fragment="content"></div>
+<footer class="nike-footer">
+    <div class="container-fluid">
+        <div class="nike-footer-grid">
+            <div>
+                <h3 class="nike-footer-title">Tìm cửa hàng</h3>
+                <ul class="nike-footer-links">
+                    <li><a href="#">Trở thành thành viên</a></li>
+                    <li><a href="#">Đăng ký email</a></li>
+                    <li><a href="#">Phản hồi</a></li>
+                    <li><a href="#">Mã giảm giá sinh viên</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="nike-footer-title">Nhận trợ giúp</h3>
+                <ul class="nike-footer-links">
+                    <li><a href="#">Trạng thái đơn hàng</a></li>
+                    <li><a href="#">Giao hàng</a></li>
+                    <li><a href="#">Trả hàng</a></li>
+                    <li><a href="#">Phương thức thanh toán</a></li>
+                    <li><a href="#">Liên hệ</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="nike-footer-title">Về NiceStore</h3>
+                <ul class="nike-footer-links">
+                    <li><a href="#">Tin tức</a></li>
+                    <li><a href="#">Nghề nghiệp</a></li>
+                    <li><a href="#">Nhà đầu tư</a></li>
+                    <li><a href="#">Phát triển bền vững</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="nike-footer-title">Theo dõi chúng tôi</h3>
+                <div class="nike-social">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="nike-footer-bottom">
+            <div>
+                <p class="mb-0">© 2025 NiceStore, Inc. Bảo lưu mọi quyền.</p>
+            </div>
+            <div>
+                <a href="#" style="color: var(--nike-gray); text-decoration: none; margin-right: 20px;">Điều khoản sử
+                    dụng</a>
+                <a href="#" style="color: var(--nike-gray); text-decoration: none;">Chính sách bảo mật</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // 🧩 Function to update cart count in header across all pages
+    async function updateHeaderCartCount() {
+        try {
+            const response = await fetch('/api/v1/carts/count');
+            if (response.ok) {
+                const data = await response.json();
+                const headerCartCount = document.getElementById('headerCartCount');
+                if (headerCartCount) {
+                    headerCartCount.textContent = data.count || 0;
+                }
+            }
+        } catch (error) {
+            console.error('Error updating cart count:', error);
+        }
+    }
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    // Update cart count when page loads
+    document.addEventListener('DOMContentLoaded', function () {
+        updateHeaderCartCount();
+        fetchCategories();
+        const token = getCookie("access_token");
+
+        const anonLinks = document.querySelectorAll(".auth-anon");
+        const userLinks = document.querySelectorAll(".auth-user");
+        const usernameSpan = document.getElementById("username");
+        const logoutBtn = document.getElementById("logout-btn");
+
+        if (token) {
+            // 🔍 Giả sử token JWT có payload chứa username, ví dụ: { sub: "duc.k" }
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                usernameSpan.textContent = payload.sub || payload.username || "Người dùng";
+            } catch (e) {
+                usernameSpan.textContent = "Người dùng";
+            }
+
+            anonLinks.forEach(a => a.style.display = "none");
+            userLinks.forEach(a => a.style.display = "inline");
+
+        } else {
+            anonLinks.forEach(a => a.style.display = "inline");
+            userLinks.forEach(a => a.style.display = "none");
+        }
+
+        logoutBtn.addEventListener("click", function() {
+            document.cookie = "auth_token=; path=/; max-age=0"; // xóa cookie
+            window.location.reload();
+        });
+    });
+
+    async function fetchCategories() {
+        try {
+            const response = await fetch('/api/categories');
+            if (!response.ok) {
+                console.error('❌ Failed to fetch categories');
+                return;
+            }
+
+            const categories = await response.json();
+            renderCategories(categories);
+
+        } catch (error) {
+            console.error('⚠️ Error fetching categories:', error);
+        }
+    }
+
+    function renderCategories(categories) {
+        const menu = document.getElementById('menuList');
+        if (!menu || !Array.isArray(categories)) return;
+
+        menu.innerHTML = `
+        <li><a href="/products">Sản phẩm</a></li>
+        ${categories.map(cat => `
+                    <li><a href="/products?category=${encodeURIComponent(cat.id)}">${cat.name}</a></li>
+                `).join('')}
+    `;
+    }
+
+    // Make the function globally available
+    window.updateHeaderCartCount = updateHeaderCartCount;
+</script>
+
+
+</body>
+</html>

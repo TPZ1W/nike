@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/client}">
+
+<th:block layout:fragment="page_head">
+    <title>Thanh toán - Nike Store</title>
+    <link rel="stylesheet" th:href="@{/css/checkout.css}">
+    <link rel="stylesheet" th:href="@{/css/coupon-apply.css}">
+</th:block>
+
+<body>
+<th:block layout:fragment="content">
+
+    <section class="checkout-section container mt-4">
+        <h2 class="mb-4 text-center">🛒 Thanh toán đơn hàng</h2>
+
+        <!-- Danh sách sản phẩm trong giỏ -->
+        <div class="cart-summary mb-4">
+            <table class="table table-bordered text-center align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Giá</th>
+                    <th>Số lượng</th>
+                    <th>Tổng</th>
+                </tr>
+                </thead>
+                <tbody id="cart-body">
+                <!-- JS sẽ render -->
+                </tbody>
+            </table>
+            
+            <!-- 🎫 Phần áp dụng mã giảm giá -->
+            <div class="coupon-section">
+                <h5><i class="fa fa-ticket"></i> Mã giảm giá</h5>
+                <div class="best-coupon-banner" id="bestCouponBanner">
+                    <i class="fa fa-star"></i>
+                    <span>Áp dụng mã tốt nhất: <strong id="bestCouponCode"></strong> - Tiết kiệm <strong id="bestCouponSaving"></strong></span>
+                </div>
+                
+                <div class="coupon-input-group">
+                    <input type="text" id="couponInput" class="coupon-input" placeholder="Nhập mã giảm giá (VD: WELCOME10, SAVE50K)">
+                    <button id="applyCouponBtn" class="btn-apply-coupon">
+                        <span class="btn-text">Áp dụng</span>
+                        <span class="loading-spinner" style="display: none;"></span>
+                    </button>
+                </div>
+                
+                <div class="coupon-suggestions">
+                    <h6>Mã gợi ý cho bạn:</h6>
+                    <div class="suggested-coupons" id="suggestedCoupons">
+                        <!-- JavaScript sẽ load -->
+                    </div>
+                </div>
+                
+                <div id="couponResult" class="coupon-result"></div>
+                
+                <div id="appliedCoupon" class="applied-coupon">
+                    <div class="applied-coupon-header">
+                        <div>
+                            <div class="applied-coupon-code" id="appliedCouponCode"></div>
+                            <div class="applied-coupon-discount" id="appliedCouponDiscount"></div>
+                        </div>
+                        <button id="removeCouponBtn" class="btn-remove-coupon" title="Xóa mã giảm giá">×</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breakdown giá tiền -->
+            <div class="price-breakdown">
+                <div class="price-row">
+                    <span>Tạm tính (<span id="totalQuantityCheckout"></span> sản phẩm):</span>
+                    <span id="subtotalCheckout">0 ₫</span>
+                </div>
+                <div class="price-row discount" id="discountRowCheckout" style="display: none;">
+                    <span>Giảm giá (<span id="appliedDiscountCodeCheckout"></span>):</span>
+                    <span id="discountAmountCheckout">- 0 ₫</span>
+                </div>
+                <div class="price-row total">
+                    <span>Tổng cộng:</span>
+                    <span id="finalTotalCheckout">0 ₫</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form thông tin giao hàng -->
+        <div class="checkout-form border rounded p-4 bg-light">
+            <h4>Thông tin giao hàng</h4>
+            <form id="checkoutForm">
+                <div class="mb-3">
+                    <label class="form-label">Địa chỉ giao hàng</label>
+                    <input type="text" name="shippingAddress" class="form-control" placeholder="VD: 123 Nguyễn Văn Cừ, Q5, TP.HCM" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">SDT</label>
+                    <input type="text" name="sdt" class="form-control" placeholder="01234567" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Phương thức thanh toán</label>
+                    <select name="paymentMethod" class="form-select" required>
+                        <option value="" disabled selected>-- Chọn phương thức --</option>
+                        <option value="CASH_ON_DELIVERY">Thanh toán khi nhận hàng</option>
+                        <option value="CREDIT_CARD">Thẻ tín dụng</option>
+                        <option value="BANK_TRANSFER">Chuyển khoản ngân hàng</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 mt-3">
+                    <i class="fa fa-check-circle me-2"></i> Đặt hàng
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Script JS xử lý -->
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const cartBody = document.getElementById("cart-body");
+            const form = document.getElementById("checkoutForm");
+            
+            // 🎫 Coupon functionality
+            let currentCoupon = null;
+            let originalTotal = 0;
+
+            // 🧩 Lấy dữ liệu giỏ hàng từ API
+            const loadCart = async () => {
+                const res = await fetch("/api/v1/carts");
+                if (!res.ok) return alert("Không thể tải giỏ hàng!");
+                const cart = await res.json();
+
+                cartBody.innerHTML = "";
+                let total = 0;
+                let totalQuantity = 0;
+
+                cart.items.forEach(item => {
+                    const subtotal = item.productPrice * item.quantity;
+                    total += subtotal;
+                    totalQuantity += item.quantity;
+
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>
+                            <span>${item.product.name}</span>
+                        </td>
+                        <td>${formatCurrency(item.productPrice)}</td>
+                        <td>${item.quantity}</td>
+                        <td>${formatCurrency(subtotal)}</td>
+                    `;
+                    cartBody.appendChild(row);
+                });
+
+                originalTotal = total;
+                document.getElementById("totalQuantityCheckout").textContent = totalQuantity;
+                document.getElementById("subtotalCheckout").textContent = formatCurrency(total);
+                document.getElementById("finalTotalCheckout").textContent = formatCurrency(total);
+
+                // Load coupon suggestions after cart is loaded
+                if (total > 0) {
+                    loadSuggestedCoupons();
+                    loadBestCoupon();
+                }
+            };
+
+            // 🎫 Load mã giảm giá gợi ý
+            const loadSuggestedCoupons = async () => {
+                try {
+                    const response = await fetch(`/api/promotions/applicable-coupons?orderAmount=${originalTotal}`);
+                    if (response.ok) {
+                        const coupons = await response.json();
+                        const container = document.getElementById("suggestedCoupons");
+                        container.innerHTML = "";
+                        
+                        coupons.slice(0, 4).forEach(coupon => {
+                            const badge = document.createElement("span");
+                            badge.className = "suggested-coupon";
+                            badge.textContent = coupon.code;
+                            badge.title = coupon.description;
+                            badge.onclick = () => applyCoupon(coupon.code);
+                            container.appendChild(badge);
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error loading suggested coupons:", error);
+                }
+            };
+
+            // 🎫 Load mã giảm giá tốt nhất
+            const loadBestCoupon = async () => {
+                try {
+                    const response = await fetch(`/api/promotions/best-coupon?orderAmount=${originalTotal}`);
+                    if (response.ok) {
+                        const coupon = await response.json();
+                        if (coupon && coupon.code) {
+                            const banner = document.getElementById("bestCouponBanner");
+                            const code = document.getElementById("bestCouponCode");
+                            const saving = document.getElementById("bestCouponSaving");
+                            
+                            // Calculate potential saving
+                            const discountResponse = await fetch(`/api/coupons/calculate/${coupon.code}?orderAmount=${originalTotal}`);
+                            if (discountResponse.ok) {
+                                const discountAmount = await discountResponse.json();
+                                code.textContent = coupon.code;
+                                saving.textContent = formatCurrency(discountAmount);
+                                banner.style.display = "block";
+                                banner.onclick = () => applyCoupon(coupon.code);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error loading best coupon:", error);
+                }
+            };
+
+            // 🎫 Áp dụng mã giảm giá
+            const applyCoupon = async (couponCode) => {
+                const btn = document.getElementById("applyCouponBtn");
+                const result = document.getElementById("couponResult");
+                const input = document.getElementById("couponInput");
+                
+                // Show loading
+                btn.disabled = true;
+                btn.querySelector(".btn-text").style.display = "none";
+                btn.querySelector(".loading-spinner").style.display = "inline-block";
+                
+                try {
+                    const response = await fetch("/api/v1/coupons/apply", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            couponCode: couponCode,
+                            orderAmount: originalTotal
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log("Coupon API response:", data); // Debug log
+                        
+                        if (data.isValid && data.discountAmount > 0) {
+                            currentCoupon = data;
+                            // Add couponCode to data for showAppliedCoupon function
+                            data.couponCode = couponCode;
+                            showAppliedCoupon(data);
+                            updatePricing(data);
+                            showResult("✅ Áp dụng mã giảm giá thành công!", "success");
+                            input.value = "";
+                            hideBestCouponBanner();
+                        } else {
+                            showResult("❌ " + (data.message || "Mã giảm giá không hợp lệ"), "error");
+                        }
+                    } else {
+                        showResult("❌ Không thể áp dụng mã giảm giá", "error");
+                    }
+                } catch (error) {
+                    console.error("Error applying coupon:", error);
+                    showResult("❌ Lỗi khi áp dụng mã giảm giá", "error");
+                } finally {
+                    // Hide loading
+                    btn.disabled = false;
+                    btn.querySelector(".btn-text").style.display = "inline";
+                    btn.querySelector(".loading-spinner").style.display = "none";
+                }
+            };
+
+            // 🎫 Hiển thị mã giảm giá đã áp dụng
+            const showAppliedCoupon = (couponData) => {
+                console.log("showAppliedCoupon called with:", couponData); // Debug log
+                const appliedDiv = document.getElementById("appliedCoupon");
+                const codeSpan = document.getElementById("appliedCouponCode");
+                const discountSpan = document.getElementById("appliedCouponDiscount");
+                
+                codeSpan.textContent = couponData.couponCode;
+                discountSpan.textContent = `Tiết kiệm ${formatCurrency(couponData.discountAmount)}`;
+                appliedDiv.style.display = "block";
+                console.log("Applied coupon display updated"); // Debug log
+            };
+
+            // 🎫 Cập nhật giá tiền
+            const updatePricing = (couponData) => {
+                console.log("updatePricing called with:", couponData); // Debug log
+                const discountRow = document.getElementById("discountRowCheckout");
+                const appliedDiscountCode = document.getElementById("appliedDiscountCodeCheckout");
+                const discountAmount = document.getElementById("discountAmountCheckout");
+                const finalTotal = document.getElementById("finalTotalCheckout");
+                
+                appliedDiscountCode.textContent = couponData.couponCode;
+                discountAmount.textContent = `- ${formatCurrency(couponData.discountAmount)}`;
+                finalTotal.textContent = formatCurrency(couponData.finalAmount);
+                discountRow.style.display = "flex";
+                console.log("Pricing updated - discount:", couponData.discountAmount, "final:", couponData.finalAmount); // Debug log
+            };
+
+            // 🎫 Xóa mã giảm giá
+            const removeCoupon = () => {
+                currentCoupon = null;
+                document.getElementById("appliedCoupon").style.display = "none";
+                document.getElementById("discountRowCheckout").style.display = "none";
+                document.getElementById("finalTotalCheckout").textContent = formatCurrency(originalTotal);
+                showResult("🗑️ Đã xóa mã giảm giá", "success");
+                loadBestCoupon(); // Reload best coupon suggestion
+            };
+
+            // 🎫 Utility functions
+            const showResult = (message, type) => {
+                const result = document.getElementById("couponResult");
+                result.textContent = message;
+                result.className = `coupon-result ${type}`;
+                result.style.display = "block";
+                setTimeout(() => {
+                    result.style.display = "none";
+                }, 3000);
+            };
+
+            const hideBestCouponBanner = () => {
+                document.getElementById("bestCouponBanner").style.display = "none";
+            };
+
+            const formatCurrency = (amount) => {
+                return new Intl.NumberFormat('vi-VN').format(amount) + " ₫";
+            };
+
+            // 🎫 Event listeners
+            document.getElementById("applyCouponBtn").addEventListener("click", () => {
+                const couponCode = document.getElementById("couponInput").value.trim();
+                if (couponCode) {
+                    applyCoupon(couponCode);
+                } else {
+                    showResult("⚠️ Vui lòng nhập mã giảm giá", "error");
+                }
+            });
+
+            document.getElementById("couponInput").addEventListener("keypress", (e) => {
+                if (e.key === "Enter") {
+                    document.getElementById("applyCouponBtn").click();
+                }
+            });
+
+            document.getElementById("removeCouponBtn").addEventListener("click", removeCoupon);
+
+            // Load cart data
+            await loadCart();
+
+            // 🧾 Gửi đơn hàng
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                const finalAmount = currentCoupon ? currentCoupon.finalAmount : originalTotal;
+
+                const payload = {
+                    paymentMethod: form.paymentMethod.value,
+                    shippingAddress: form.shippingAddress.value,
+                    phone: form.sdt.value,
+                    totalAmount: finalAmount,
+                    couponCode: currentCoupon ? currentCoupon.couponCode : null,
+                    discountAmount: currentCoupon ? currentCoupon.discountAmount : 0
+                };
+
+                const res = await fetch("/api/v1/orders/checkout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert("✅ Đặt hàng thành công!");
+                    window.location.href = '/orders/checkout/success';
+                } else {
+                    alert("❌ Đặt hàng thất bại, vui lòng thử lại!");
+                }
+            });
+        });
+    </script>
+
+</th:block>
+</body>
+</html>

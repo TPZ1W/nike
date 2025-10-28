@@ -1,0 +1,36 @@
+
+package com.proj.webprojrct.order.entity;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.proj.webprojrct.common.entity.BaseEntity;
+import com.proj.webprojrct.user.entity.User;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.List;
+
+@Entity
+@Table(name = "orders") // Thay đổi tên bảng để tránh từ khóa SQL "order"
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Order extends BaseEntity {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    private Double totalAmount;
+    private Integer quantity;
+    private String phone;
+    private String status; // pending, confirmed, shipping, completed, canceled
+    private String paymentMethod; // COD, Momo, VNPay, PayPal
+    private String shippingAddress;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<OrderItem> items;
+}
