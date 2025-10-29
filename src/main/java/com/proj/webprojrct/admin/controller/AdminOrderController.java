@@ -1,146 +1,104 @@
 package com.proj.webprojrct.admin.controller;
 
-import com.proj.webprojrct.admin.repository.AdminOrderRepository;
-import com.proj.webprojrct.order.entity.Order;
+import com.proj.webprojrct.order.repository.OrderRepository;
+import com.proj.webprojrct.product.repository.ProductRepository;
+import com.proj.webprojrct.promotion.repository.CouponRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Controller quản lý đơn hàng trong admin dashboard
  */
-@RestController
-@RequestMapping("/admin/api/orders")
+@Controller
+@RequestMapping("/admin/orders")
 @RequiredArgsConstructor
 public class AdminOrderController {
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
+    private final CouponRepository couponRepository;
 
-    private final AdminOrderRepository adminOrderRepository;
-
-    // Helper methods để giảm code trùng lặp
-    private <T> ResponseEntity<T> ok(T data) {
-        return ResponseEntity.ok(data);
-    }
-
-    private ResponseEntity<Void> notFound() {
-        return ResponseEntity.notFound().build();
-    }
-
-    /**
-     * Lấy danh sách tất cả đơn hàng (có phân trang)
-     */
     @GetMapping
-    public ResponseEntity<Page<Order>> getAllOrders(Pageable pageable) {
-        Page<Order> orderPage = adminOrderRepository.findAll(pageable);
-        return ok(orderPage);
+    public String orderPage(Model model) {
+        model.addAttribute("orders", orderRepository.findAll());
+        model.addAttribute("total", orderRepository.countAllOrders());
+        model.addAttribute("pending", orderRepository.countByStatus("pending"));
+        model.addAttribute("confirmed", orderRepository.countByStatus("confirmed"));
+        model.addAttribute("shipping", orderRepository.countByStatus("shipping"));
+        model.addAttribute("completed", orderRepository.countByStatus("completed"));
+        model.addAttribute("canceled", orderRepository.countByStatus("canceled"));
+        model.addAttribute("waitPaid", orderRepository.countByStatus("WAITING_FOR_PAYMENT"));
+        return "admin/orders";
     }
 
-    /**
-     * Lấy thông tin chi tiết một đơn hàng
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
-        return adminOrderRepository.findById(id)
-                .map(this::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("update-status")
+    @ResponseBody
+    public Object updateOrderStatus(@RequestParam Long id, @RequestParam String status) {
+        var order = orderRepository.findById(id).orElseThrow(() -> new RuntimeException("Đơn hàng không tồn tại"));
+        switch (status) {
+            case "confirmed":
+                order.setStatus("confirmed");
+                break;
+            case "shipping":
+                order.setStatus("shipping");
+                break;
+            case "completed":
+                order.setStatus("completed");
+                break;
+            case "canceled":
+                order.setStatus("canceled");
+                order.getItems().forEach(oi -> {
+                    var p = productRepository.findById(oi.getProduct().getId()).orElseThrow();
+                    p.setStock(p.getStock() + oi.getQuantity());
+                    productRepository.save(p);
+                });
+                Optional.ofNullable(order.getCoupon()).flatMap(c -> couponRepository.findById(c.getId())).ifPresent(coupon -> {
+                    coupon.setUsedCount(coupon.getUsedCount() - 1);
+                    couponRepository.save(coupon);
+                });
+
+                break;
+        }
+        orderRepository.save(order);
+        return Map.of("success", true);
     }
 
-    /**
-     * Cập nhật trạng thái đơn hàng
-     */
-    @PutMapping("/{id}/status")
-    public ResponseEntity<Order> updateOrderStatus(
-            @PathVariable Long id,
-            @RequestParam String status) {
-        
-        return adminOrderRepository.findById(id)
+    @GetMapping("{id}")
+    @ResponseBody
+    public Object getOrderById(@PathVariable Long id) {
+        return orderRepository.findById(id)
                 .map(order -> {
-                    order.setStatus(status);
-                    Order updatedOrder = adminOrderRepository.save(order);
-                    return ok(updatedOrder);
+                    Map<String, Object> dto = new LinkedHashMap<>();
+                    dto.put("id", order.getId());
+                    dto.put("userName", order.getUser() != null ? order.getUser().getFullName() : "Khách lẻ");
+                    dto.put("email", order.getUser() != null ? order.getUser().getEmail() : "");
+                    dto.put("phone", order.getPhone());
+                    dto.put("shippingAddress", order.getShippingAddress());
+                    dto.put("paymentMethod", order.getPaymentMethod());
+                    dto.put("status", order.getStatus());
+                    dto.put("totalAmount", order.getTotalAmount());
+                    dto.put("createdAt", order.getCreatedAt());
+                    dto.put("coupon", order.getCoupon() != null ? order.getCoupon().getCode() : null);
+
+                    List<Map<String, Object>> items = order.getItems().stream().map(i -> {
+                        Map<String, Object> m = new LinkedHashMap<>();
+                        m.put("productName", i.getProduct().getName());
+                        m.put("quantity", i.getQuantity());
+                        m.put("price", i.getProductPrice());
+                        m.put("size", i.getSize());
+                        m.put("subtotal", i.getProductPrice() * i.getQuantity());
+                        return m;
+                    }).toList();
+
+                    dto.put("items", items);
+                    return dto;
                 })
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    /**
-     * Lấy đơn hàng theo trạng thái
-     */
-    @GetMapping("/by-status")
-    public ResponseEntity<List<Order>> getOrdersByStatus(@RequestParam String status) {
-        // Tạm thời return empty list, cần implement method trong repository
-        List<Order> orders = java.util.Collections.emptyList(); // adminOrderRepository.findByStatus(status);
-        return ok(orders);
-    }
-
-    /**
-     * Thống kê tổng số đơn hàng
-     */
-    @GetMapping("/stats/total")
-    public ResponseEntity<Long> getTotalOrders() {
-        Long totalOrders = adminOrderRepository.count();
-        return ok(totalOrders);
-    }
-
-    /**
-     * Thống kê đơn hàng theo trạng thái
-     */
-    @GetMapping("/stats/by-status")
-    public ResponseEntity<List<Object[]>> getOrderStatsByStatus() {
-        List<Object[]> stats = adminOrderRepository.countOrdersByStatus();
-        return ok(stats);
-    }
-
-    /**
-     * Thống kê doanh thu theo ngày
-     */
-    @GetMapping("/stats/daily-revenue")
-    public ResponseEntity<List<Object[]>> getDailyRevenue(
-            @RequestParam(required = false) Integer days) {
-        
-        // Tạm thời return empty list, cần implement method trong repository
-        List<Object[]> revenue = java.util.Collections.emptyList(); // adminOrderRepository.getDailyRevenue(days != null ? days : 30);
-        return ok(revenue);
-    }
-
-    /**
-     * Thống kê tổng doanh thu
-     */
-    @GetMapping("/stats/total-revenue")
-    public ResponseEntity<BigDecimal> getTotalRevenue() {
-        // Fix type conversion từ Double sang BigDecimal
-        Double totalRevenueDouble = adminOrderRepository.calculateTotalRevenue();
-        BigDecimal totalRevenue = totalRevenueDouble != null ? 
-            BigDecimal.valueOf(totalRevenueDouble) : BigDecimal.ZERO;
-        return ok(totalRevenue);
-    }
-
-    /**
-     * Lấy đơn hàng trong khoảng thời gian
-     */
-    @GetMapping("/by-date-range")
-    public ResponseEntity<List<Order>> getOrdersByDateRange(
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
-        
-        // Tạm thời return empty list, cần implement method trong repository
-        List<Order> orders = java.util.Collections.emptyList(); // adminOrderRepository.findOrdersInDateRange(startDate, endDate);
-        return ok(orders);
-    }
-
-    /**
-     * Xóa đơn hàng (chỉ dành cho admin cấp cao)
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
-        return adminOrderRepository.findById(id)
-                .map(order -> {
-                    adminOrderRepository.delete(order);
-                    return ResponseEntity.ok().<Void>build();
-                })
-                .orElse(notFound());
+                .orElse(Map.of());
     }
 }
