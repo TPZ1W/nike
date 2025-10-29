@@ -127,9 +127,21 @@
                 </div>
                 <div>
                     <span class="order-status"
-                          th:classappend="'status-' + ${order.status}"
-                          th:text="${order.status}">
-                        pending
+                          th:classappend="'status-' + ${order.status}">
+                        <span th:switch="${order.status}">
+                            <span th:case="'pending'">🟡 Đang chờ xác nhận</span>
+                            <span th:case="'confirmed'">🔵 Đã xác nhận</span>
+                            <span th:case="'WAITING_FOR_PAYMENT'">💳 Đang chờ thanh toán</span>
+                            <span th:case="'shipping'">🚚 Đang giao hàng</span>
+                            <span th:case="'completed'">✅ Đã hoàn thành</span>
+                            <span th:case="'canceled'">
+                                ❌ Đã hủy
+                                <span th:if="${order.paymentMethod == 'VNPAY'}" class="text-danger d-block mt-1">
+                                    Vui lòng liên hệ nhân viên qua <strong>chatbot</strong> để được hoàn tiền.
+                                </span>
+                            </span>
+                            <span th:case="*">-</span> <!-- fallback nếu không khớp -->
+                        </span>
                     </span>
                 </div>
             </div>
