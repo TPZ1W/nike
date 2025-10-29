@@ -15,8 +15,6 @@ public class ViewController {
     private final ProductService productService;
     @GetMapping("/")
     public String index(Model model) {
-        logger.info("Accessing root path (/) - rendering home page");
-        System.out.println("Accessing root path (/) - rendering home page");
         model.addAttribute("pageTitle", "Trang chủ");
         model.addAttribute("newProducts", productService.getNewProducts(12));
         return "home"; // This will render home.html (Thymeleaf)
@@ -24,8 +22,6 @@ public class ViewController {
 
     @GetMapping("/home")
     public String home(Model model) {
-        logger.info("Accessing /home - rendering home page");
-        System.out.println("Accessing /home - rendering home page");
         model.addAttribute("pageTitle", "Trang chủ");
         model.addAttribute("newProducts", productService.getNewProducts(12));
         return "home"; // This will render home.html (Thymeleaf)
@@ -33,31 +29,24 @@ public class ViewController {
 
     @GetMapping("/login")
     public String login(Model model) {
-        logger.info("Accessing /login - rendering login page");
-        System.out.println("Accessing /login - rendering login page");
         model.addAttribute("pageTitle", "Đăng nhập");
         return "login"; // This will render login.html (Thymeleaf)
     }
 
     @GetMapping("/register")
     public String register(Model model) {
-        logger.info("Accessing /register - rendering register page");
-        System.out.println("Accessing /register - rendering register page");
         model.addAttribute("pageTitle", "Đăng ký");
         return "register"; // This will render register.html (Thymeleaf)
     }
     
     @GetMapping("/forgot-password")
     public String forgotPassword(Model model) {
-        logger.info("Accessing /forgot-password - rendering forgot password page");
-        System.out.println("Accessing /forgot-password - rendering forgot password page");
         model.addAttribute("pageTitle", "Quên mật khẩu");
         return "forgot-password"; // This will render forgot-password.html (Thymeleaf)
     }
     
     @GetMapping("/test")
     public String test(Model model) {
-        logger.info("Accessing /test - rendering test page");
         model.addAttribute("pageTitle", "Test");
         return "test"; // This will render test.html (Thymeleaf)
     }

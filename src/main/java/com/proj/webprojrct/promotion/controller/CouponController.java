@@ -5,6 +5,7 @@ import com.proj.webprojrct.promotion.dto.request.CouponCreateRequest;
 import com.proj.webprojrct.promotion.dto.request.CouponUpdateRequest;
 import com.proj.webprojrct.promotion.dto.response.CouponDiscountResponse;
 import com.proj.webprojrct.promotion.dto.response.CouponResponse;
+import com.proj.webprojrct.promotion.repository.CouponRepository;
 import com.proj.webprojrct.promotion.service.CouponService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +30,13 @@ import java.util.Map;
 public class CouponController {
 
     private final CouponService couponService;
+    private final CouponRepository couponRepository;
 
     // ===== CRUD Operations =====
+    @GetMapping("available")
+    public Object getAvailableCoupons(@RequestParam("amount") Double amount) {
+        return couponRepository.findValidCouponsV2(amount);
+    }
 
     @PostMapping
     public ResponseEntity<Object> createCoupon(@Valid @RequestBody CouponCreateRequest request) {

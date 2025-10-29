@@ -40,57 +40,57 @@ SELECT false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
 INSERT INTO category (is_delete, created_at, updated_at, description, name)
 SELECT false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
        'Trẻ em.', 'Trẻ em'
-    WHERE NOT EXISTS (SELECT 1 FROM category WHERE name = 'Nike Lifestyle');
+    WHERE NOT EXISTS (SELECT 1 FROM category WHERE name = 'Trẻ em');
 
 INSERT INTO category (is_delete, created_at, updated_at, description, name)
 SELECT false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
        'Khác.', 'Khác'
-    WHERE NOT EXISTS (SELECT 1 FROM category WHERE name = 'Nike Football');
+    WHERE NOT EXISTS (SELECT 1 FROM category WHERE name = 'Khác');
 
 -- Thêm dữ liệu mẫu cho bảng product
-INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id)
+INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id, stock)
 SELECT false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
        'Nike Air Force 1', 'nike-air-force-1', 'Classic White Sneakers', 
        'Iconic basketball shoe with timeless style and maximum comfort.', 
        2500000.0,
        ARRAY['nike-air-force-1-white.jpg', 'nike-air-force-1-white-2.jpg'], 
-       (SELECT id FROM category WHERE name = 'Nike Basketball' LIMIT 1)
+       (SELECT id FROM category WHERE name = 'Nam' LIMIT 1), 100
     WHERE NOT EXISTS (SELECT 1 FROM product WHERE name = 'Nike Air Force 1');
 
-INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id)
+INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id, stock)
 SELECT false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
        'Nike Air Max 90', 'nike-air-max-90', 'Retro Running Shoes', 
        'The classic Air Max 90 with visible air cushioning and retro style.', 
        3200000.0,
        ARRAY['nike-air-max-90-black.jpg', 'nike-air-max-90-black-2.jpg'], 
-       (SELECT id FROM category WHERE name = 'Nike Running' LIMIT 1)
+       (SELECT id FROM category WHERE name = 'Nam' LIMIT 1), 100
     WHERE NOT EXISTS (SELECT 1 FROM product WHERE name = 'Nike Air Max 90');
 
-INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id)
+INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id, stock)
 SELECT false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
        'Nike Dunk Low', 'nike-dunk-low', 'Lifestyle Sneakers', 
        'Versatile basketball-inspired shoe perfect for everyday wear.', 
        2800000.0,
        ARRAY['nike-dunk-low-white-navy.jpg', 'nike-dunk-low-white-navy-2.jpg'], 
-       (SELECT id FROM category WHERE name = 'Nike Lifestyle' LIMIT 1)
+       (SELECT id FROM category WHERE name = 'Nữ' LIMIT 1), 100
     WHERE NOT EXISTS (SELECT 1 FROM product WHERE name = 'Nike Dunk Low');
 
-INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id)
+INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id, stock)
 SELECT false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
        'Air Jordan 1 High', 'air-jordan-1-high', 'Legendary Basketball Shoes', 
        'The shoe that started it all. Classic Jordan 1 with premium materials.', 
        4500000.0,
        ARRAY['jordan-1-chicago.jpg', 'jordan-1-chicago-2.jpg'], 
-       (SELECT id FROM category WHERE name = 'Air Jordan' LIMIT 1)
+       (SELECT id FROM category WHERE name = 'Nữ' LIMIT 1), 100
     WHERE NOT EXISTS (SELECT 1 FROM product WHERE name = 'Air Jordan 1 High');
 
-INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id)
+INSERT INTO product (is_delete, created_at, updated_at, name, slug, sub_title, description, price, images, category_id, stock)
 SELECT false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
        'Nike React Infinity Run', 'nike-react-infinity-run', 'Professional Running Shoes', 
        'Designed to keep you running with maximum cushioning and support.', 
        3800000.0,
        ARRAY['nike-react-infinity-blue.jpg', 'nike-react-infinity-blue-2.jpg'], 
-       (SELECT id FROM category WHERE name = 'Nike Running' LIMIT 1)
+       (SELECT id FROM category WHERE name = 'Trẻ em' LIMIT 1), 100
     WHERE NOT EXISTS (SELECT 1 FROM product WHERE name = 'Nike React Infinity Run');
 
 -- Thêm dữ liệu mẫu cho bảng orders (với các trạng thái theo yêu cầu)

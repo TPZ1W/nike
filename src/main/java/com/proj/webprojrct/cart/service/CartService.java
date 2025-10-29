@@ -32,7 +32,7 @@ public class CartService {
         var product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
         cartRepository.findByUserId(user.getId())
                 .ifPresentOrElse(cart -> {
-                    cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
+                    cartItemRepository.findByCartIdAndSizeAndProductId(cart.getId(), size, productId)
                             .ifPresentOrElse(cartItem -> {
                                 cartItem.setQuantity(cartItem.getQuantity() + quantity);
                                 cartItemRepository.save(cartItem);
@@ -62,28 +62,25 @@ public class CartService {
     }
 
     // Cập nhật số lượng sản phẩm trong giỏ hàng
-    public void updateQuantity(User user, Long productId, Integer newQuantity) {
+    public void updateQuantity(User user, Long productId, Integer newQuantity, String size) {
         if (newQuantity == null || newQuantity <= 0) {
             throw new IllegalArgumentException("Số lượng phải lớn hơn 0");
         }
-
         var cart = cartRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng của người dùng"));
-
-        var cartItem = cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
+        var cartItem = cartItemRepository.findByCartIdAndSizeAndProductId(cart.getId(), size, productId)
                 .orElseThrow(() -> new RuntimeException("Sản phẩm không có trong giỏ hàng"));
-
         cartItem.setQuantity(newQuantity);
         cartItem.setTotalPrice(cartItem.getProductPrice() * newQuantity);
         cartItemRepository.save(cartItem);
     }
 
     // Xóa sản phẩm khỏi giỏ hàng
-    public void removeItem(User user, Long productId) {
+    public void removeItem(User user, Long productId, String size) {
         var cart = cartRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng của người dùng"));
 
-        var cartItem = cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
+        var cartItem = cartItemRepository.findByCartIdAndSizeAndProductId(cart.getId(), size, productId)
                 .orElseThrow(() -> new RuntimeException("Sản phẩm không có trong giỏ hàng"));
 
         cartItemRepository.delete(cartItem);

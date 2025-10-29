@@ -14,6 +14,15 @@ import java.util.Optional;
 
 @Repository
 public interface CouponRepository extends JpaRepository<Coupon, Long> {
+    @Query("""
+        SELECT c FROM Coupon c
+        WHERE c.isActive = true
+          AND (c.startDate IS NULL OR c.startDate <= CURRENT_TIMESTAMP)
+          AND (c.endDate IS NULL OR c.endDate >= CURRENT_TIMESTAMP)
+          AND (c.usageLimit > c.usedCount)
+          AND (:orderAmount IS NULL OR c.minOrderAmount <= :orderAmount)
+        """)
+    List<Coupon> findValidCouponsV2(@Param("orderAmount") Double orderAmount);
 
     // Tìm coupon theo code
     Optional<Coupon> findByCode(String code);

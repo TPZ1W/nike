@@ -47,7 +47,7 @@
 
                     <div class="card-body text-center">
                         <h5 class="card-title text-truncate" th:text="${product.name}">Tên sản phẩm</h5>
-                        <p class="text-muted small" th:text="${product.category.name}">Danh mục</p>
+                        <p class="text-muted small" th:text="${product.category?.getName()}">Danh mục</p>
                         <p class="fw-bold text-danger mb-0"
                            th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' ₫'">
                             1.000.000 ₫

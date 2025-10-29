@@ -1,6 +1,5 @@
 package com.proj.webprojrct.order.controller;
 
-import com.proj.webprojrct.order.entity.Order;
 import com.proj.webprojrct.order.service.OrderService;
 import com.proj.webprojrct.user.entity.User;
 import lombok.AllArgsConstructor;
@@ -20,10 +19,14 @@ import java.util.Map;
 public class OrderController {
     private final OrderService orderService;
 
+
     @PostMapping("checkout")
     public Object createOrder(@AuthenticationPrincipal User user, @RequestBody OrderRequest order) {
-        orderService.placeOrder(user, order);
-        return Map.of("status", "✅ Đặt hàng thành công");
+        if (user == null) {
+            return Map.of("status", false, "message", "Vui lòng đăng nhập");
+        }
+        var paymentUrl = orderService.placeOrder(user, order);
+        return Map.of("status", true, "message", "✅ Đặt hàng thành công", "paymentUrl", paymentUrl);
     }
 
     @Data
@@ -33,6 +36,7 @@ public class OrderController {
         private String shippingAddress;
         private String paymentMethod;
         private String phone;
+        private String couponCode;
     }
 
 }

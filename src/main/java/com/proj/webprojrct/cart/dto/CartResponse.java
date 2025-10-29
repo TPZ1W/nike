@@ -40,6 +40,7 @@ public class CartResponse {
                     item.getId(),
                     productInCart,
                     item.getQuantity(),
+                    item.getSize(),
                     item.getProductPrice(),
                     item.getTotalPrice()
             );
@@ -62,6 +63,7 @@ public class CartResponse {
         private Long id;
         private ProductInCart product;
         private Integer quantity;
+        private String size;
         private Double productPrice;
         private Double totalPrice;
     }

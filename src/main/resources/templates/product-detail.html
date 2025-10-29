@@ -225,6 +225,9 @@
 
                     if (result.status === true || result.status === "✅ Thêm vào giỏ hàng thành công") {
                         alert("🛒 " + (result.status || "Thêm vào giỏ hàng thành công!"));
+                        if (window.updateHeaderCartCount) {
+                            window.updateHeaderCartCount();
+                        }
                     } else {
                         alert("❌ " + (result.message || "Không thể thêm vào giỏ hàng."));
                     }
@@ -232,11 +235,9 @@
                     console.error("❌ Lỗi khi gọi API thêm giỏ hàng:", error);
                     alert("Đã xảy ra lỗi khi thêm sản phẩm vào giỏ hàng.");
                 }
-
             });
         });
     </script>
-
 </th:block>
 </body>
 </html>

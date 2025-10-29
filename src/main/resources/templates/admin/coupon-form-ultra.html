@@ -217,7 +217,7 @@
                             <option value="">Chọn loại giảm giá</option>
                             <option th:each="type : ${discountTypes}" 
                                     th:value="${type}" 
-                                    th:text="${type == T(com.proj.webprojrct.promotion.entity.Coupon.DiscountType).PERCENTAGE ? 'Phần trăm (%)' : 'Số tiền cố định (VNĐ)'}"></option>
+                                    th:text="${type == T(com.proj.webprojrct.promotion.entity.EDiscountType).PERCENTAGE ? 'Phần trăm (%)' : 'Số tiền cố định (VNĐ)'}"></option>
                         </select>
                     </div>
                     

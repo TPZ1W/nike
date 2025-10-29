@@ -173,8 +173,6 @@ public class JwtService {
      * Validate JWT token with comprehensive logging
      */
     public boolean validateJwtToken(String token) {
-        log.debug("🔍 [JWT] Validating token...");
-        
         if (token == null || token.trim().isEmpty()) {
             log.warn("⚠️ [JWT] Token is null or empty");
             return false;
@@ -185,10 +183,6 @@ public class JwtService {
             String username = claims.getSubject();
             String tokenType = (String) claims.get("type");
             Date expiration = claims.getExpiration();
-            
-            log.info("✅ [JWT] Token VALID - User: {} | Type: {} | Expires: {}", 
-                     username, tokenType, expiration);
-            
             return true;
             
         } catch (ExpiredJwtException e) {
@@ -212,7 +206,6 @@ public class JwtService {
      */
     public String extractTokenType(String token) {
         String type = (String) extractAllClaims(token).get("type");
-        log.debug("🏷️ [JWT] Token type: {}", type);
         return type;
     }
 
@@ -221,7 +214,6 @@ public class JwtService {
      */
     public boolean isAccessToken(String token) {
         boolean isAccess = "access".equals(extractTokenType(token));
-        log.debug("🔑 [JWT] Is Access Token: {}", isAccess);
         return isAccess;
     }
 
@@ -230,7 +222,6 @@ public class JwtService {
      */
     public boolean isRefreshToken(String token) {
         boolean isRefresh = "refresh".equals(extractTokenType(token));
-        log.debug("🔄 [JWT] Is Refresh Token: {}", isRefresh);
         return isRefresh;
     }
 
@@ -239,7 +230,6 @@ public class JwtService {
      */
     public String extractUsername(String jwt) {
         String username = (String) extractAllClaims(jwt).get("email");
-        log.debug("📧 [JWT] Extracted username/email: {}", username);
         return username;
     }
 
@@ -247,7 +237,6 @@ public class JwtService {
      * Get signing key for JWT
      */
     private Key getSigningKey() {
-        log.trace("🔐 [JWT] Getting signing key (secret length: {} chars)", secret.length());
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 }

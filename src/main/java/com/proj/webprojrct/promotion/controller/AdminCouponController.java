@@ -4,6 +4,7 @@ import com.proj.webprojrct.promotion.dto.request.CouponCreateRequest;
 import com.proj.webprojrct.promotion.dto.request.CouponUpdateRequest;
 import com.proj.webprojrct.promotion.dto.response.CouponResponse;
 import com.proj.webprojrct.promotion.entity.Coupon;
+import com.proj.webprojrct.promotion.entity.EDiscountType;
 import com.proj.webprojrct.promotion.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -54,14 +55,14 @@ public class AdminCouponController {
         model.addAttribute("totalCoupons", couponService.getTotalCoupons());
         model.addAttribute("activeCoupons", couponService.getActiveCoupons());
         model.addAttribute("validCoupons", couponService.getValidCouponsCount());
-        
+
         return "admin/coupons-minimal";
     }
 
     @GetMapping("/create")
     public String createCouponForm(Model model) {
         model.addAttribute("couponCreateRequest", new CouponCreateRequest());
-        model.addAttribute("discountTypes", Coupon.DiscountType.values());
+        model.addAttribute("discountTypes", EDiscountType.values());
         model.addAttribute("pageTitle", "Tạo mã giảm giá mới");
         model.addAttribute("action", "create");
         return "admin/coupon-form-ultra";
@@ -76,7 +77,7 @@ public class AdminCouponController {
         } catch (Exception e) {
             model.addAttribute("errorMessage", "Lỗi tạo mã giảm giá: " + e.getMessage());
             model.addAttribute("couponCreateRequest", request);
-            model.addAttribute("discountTypes", Coupon.DiscountType.values());
+            model.addAttribute("discountTypes", EDiscountType.values());
             model.addAttribute("pageTitle", "Tạo mã giảm giá mới");
             model.addAttribute("action", "create");
             return "admin/coupon-form-ultra";
@@ -116,7 +117,7 @@ public class AdminCouponController {
             
             model.addAttribute("couponCreateRequest", couponRequest);
             model.addAttribute("coupon", coupon);
-            model.addAttribute("discountTypes", Coupon.DiscountType.values());
+            model.addAttribute("discountTypes", EDiscountType.values());
             model.addAttribute("pageTitle", "Chỉnh sửa mã giảm giá: " + coupon.getCode());
             model.addAttribute("action", "edit");
             model.addAttribute("couponId", id);
@@ -150,7 +151,7 @@ public class AdminCouponController {
         } catch (Exception e) {
             model.addAttribute("errorMessage", "Lỗi cập nhật mã giảm giá: " + e.getMessage());
             model.addAttribute("couponCreateRequest", request);
-            model.addAttribute("discountTypes", Coupon.DiscountType.values());
+            model.addAttribute("discountTypes", EDiscountType.values());
             model.addAttribute("pageTitle", "Chỉnh sửa mã giảm giá");
             model.addAttribute("action", "edit");
             model.addAttribute("couponId", id);
