@@ -661,3 +661,20 @@
     border-radius: 10px;
 }
 
+.review-item {
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.review-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.review-images img:hover {
+    transform: scale(1.05);
+}
+
+.review-images img {
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}

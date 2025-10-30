@@ -310,11 +310,12 @@
             // Ẩn tất cả
             $('#btn-confirm, #btn-shipping, #btn-complete, #btn-cancel').hide();
 
-            switch (status) {
+            switch (status.toLowerCase()) {
                 case 'pending':
                     $('#btn-confirm, #btn-cancel').show();
                     break;
                 case 'confirmed':
+                case 'paid':
                     $('#btn-shipping, #btn-cancel').show();
                     break;
                 case 'shipping':
@@ -349,7 +350,6 @@
             })
                 .fail(() => alert('Không thể cập nhật trạng thái đơn hàng.'));
         }
-
 
         function formatDate(d) {
             return d ? new Date(d).toLocaleString('vi-VN') : '-';

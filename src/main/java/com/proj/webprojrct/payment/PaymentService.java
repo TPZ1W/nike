@@ -1,19 +1,23 @@
 package com.proj.webprojrct.payment;
 
+import com.proj.webprojrct.order.repository.OrderRepository;
 import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.TimeZone;
+import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentService {
+    private final OrderRepository orderRepository;
 
     public VnpayDTO createPayment(VnPayBody body) {
         var vnpTxnRef = String.valueOf(System.currentTimeMillis());
@@ -58,22 +62,29 @@ public class PaymentService {
         return new VnpayDTO(0L, paymentUrl, vnpTxnRef);
     }
 
-//    @PostMapping("confirm")
-//    public Object confirmOrder(@RequestBody QueryVnPayBody body, HttpServletRequest request) {
-//        var rs = ResponseVO.builder().success(false).build();
-//        var vnpParams = buildParamQuery(body.txnRef(), body.transDate());
-//        var headers = RequestUtils.createHeaders();
+    public Map<String, Object> createConfirm(String vnpTxnRef, String transDate) {
+        var vnpParams = buildParamQuery(vnpTxnRef, transDate);
+        return Map.of("param", vnpParams, "url", VnpayUtils.VNP_QUERY_URL);
+    }
+
+//    public void confirmOrder(String vnpTxnRef, String transDate) {
+//        var vnpParams = buildParamQuery(vnpTxnRef, transDate);
+//        var headers = createHeaders();
 //        var httpEntity = new HttpEntity<>(vnpParams, headers);
 //        var response = restTemplate.postForEntity(VnpayUtils.VNP_QUERY_URL, httpEntity, Object.class);
-//        if (response.getStatusCode()
-//                .is2xxSuccessful() && response.getBody() != null && response.getBody() instanceof Map<?, ?> map) {
-//            if (map.containsKey("vnp_ResponseCode") && "00".equals(map.get("vnp_ResponseCode"))
-//                    && map.containsKey("vnp_TransactionStatus") && "00".equals(map.get("vnp_TransactionStatus"))) {
-//                var success = userService.updateUserType(request);
-//                rs.setSuccess("SUCCESS".equals(success));
+//        orderRepository.findByTxnId(vnpTxnRef).ifPresent(order -> {
+//            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody() instanceof Map<?, ?> map) {
+//                if (map.containsKey("vnp_ResponseCode")
+//                        && "00".equals(map.get("vnp_ResponseCode"))
+//                        && map.containsKey("vnp_TransactionStatus")
+//                        && "00".equals(map.get("vnp_TransactionStatus"))) {
+//                    order.setStatus("paid");
+//                } else {
+//                    order.setStatus("failed");
+//                }
 //            }
-//        }
-//        return rs;
+//            orderRepository.save(order);
+//        });
 //    }
 
 
@@ -140,5 +151,12 @@ public class PaymentService {
     }
 
     public record QueryVnPayBody(String txnRef, String transDate) {
+    }
+
+    public HttpHeaders createHeaders() {
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        return headers;
     }
 }

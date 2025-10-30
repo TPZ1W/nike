@@ -134,6 +134,8 @@
                             <span th:case="'WAITING_FOR_PAYMENT'">💳 Đang chờ thanh toán</span>
                             <span th:case="'shipping'">🚚 Đang giao hàng</span>
                             <span th:case="'completed'">✅ Đã hoàn thành</span>
+                            <span th:case="'paid'">✅ Thanh toán VNPAY thành công</span>
+                            <span th:case="'fail'"> ❌ Thanh toán thất bại</span>
                             <span th:case="'canceled'">
                                 ❌ Đã hủy
                                 <span th:if="${order.paymentMethod == 'VNPAY'}" class="text-danger d-block mt-1">

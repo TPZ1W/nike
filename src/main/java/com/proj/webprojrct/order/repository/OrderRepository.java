@@ -7,11 +7,12 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    
-    List<Order> findByUserId(Long userId);
+    Optional<Order> findByTxnId(String txnId);
+    List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
     
     List<Order> findByStatus(String status);
     @Query("SELECT COUNT(o) FROM Order o")

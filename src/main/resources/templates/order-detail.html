@@ -70,6 +70,34 @@
         .btn-cancel {
             margin-top: 20px;
         }
+
+        .rating {
+            direction: rtl;
+            display: inline-flex;
+            font-size: 24px;
+        }
+        .rating input {
+            display: none;
+        }
+        .rating label {
+            cursor: pointer;
+            color: #ccc;
+            transition: color 0.2s;
+        }
+        .rating input:checked ~ label,
+        .rating label:hover,
+        .rating label:hover ~ label {
+            color: #f1c40f;
+        }
+        .review-box {
+            background-color: #fafafa;
+        }
+        .image-preview img {
+            transition: transform 0.2s;
+        }
+        .image-preview img:hover {
+            transform: scale(1.05);
+        }
     </style>
 </th:block>
 
@@ -87,6 +115,8 @@
                             <span th:case="'WAITING_FOR_PAYMENT'">💳 Đang chờ thanh toán</span>
                             <span th:case="'shipping'">🚚 Đang giao hàng</span>
                             <span th:case="'completed'">✅ Đã hoàn thành</span>
+                            <span th:case="'paid'">✅ Thanh toán VNPAY thành công</span>
+                            <span th:case="'fail'"> ❌ Thanh toán thất bại</span>
                             <span th:case="'canceled'">
                                 ❌ Đã hủy
                                 <span th:if="${order.paymentMethod == 'VNPAY'}" class="text-danger d-block mt-1">
@@ -168,6 +198,80 @@
                 ← Quay lại danh sách
             </a>
         </div>
+
+        <!-- 💬 Phần đánh giá sản phẩm (chỉ hiển thị khi đơn hoàn thành hoặc thanh toán thành công) -->
+        <!-- 💬 Phần đánh giá sản phẩm -->
+        <div th:if="${order.status == 'completed' or order.status == 'paid'}" class="mt-5">
+            <h5>Đánh giá sản phẩm</h5>
+
+            <div th:each="item : ${order.items}" class="review-box border rounded p-3 my-3">
+                <div class="d-flex align-items-center mb-2">
+                    <img th:src="${#lists.isEmpty(item.product.images)} ? @{/img/no-image.png} : @{${item.product.images[0]}}"
+                         alt="Product" style="width:60px; height:60px; border-radius:5px; margin-right:15px;">
+                    <div>
+                        <strong th:text="${item.product.name}">Tên sản phẩm</strong>
+                    </div>
+                </div>
+
+                <!-- ⭐ Form đánh giá -->
+                <form th:action="@{'/reviews/add/' + ${item.product.id}}" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>Đánh giá:</label>
+                        <div class="rating">
+                            <input type="radio" name="rating" value="5" id="star5-[[${item.product.id}]]"><label for="star5-[[${item.product.id}]]">★</label>
+                            <input type="radio" name="rating" value="4" id="star4-[[${item.product.id}]]"><label for="star4-[[${item.product.id}]]">★</label>
+                            <input type="radio" name="rating" value="3" id="star3-[[${item.product.id}]]"><label for="star3-[[${item.product.id}]]">★</label>
+                            <input type="radio" name="rating" value="2" id="star2-[[${item.product.id}]]"><label for="star2-[[${item.product.id}]]">★</label>
+                            <input type="radio" name="rating" value="1" id="star1-[[${item.product.id}]]"><label for="star1-[[${item.product.id}]]">★</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-2">
+                        <input type="text" name="title" class="form-control" placeholder="Tiêu đề (tùy chọn)">
+                    </div>
+
+                    <div class="form-group mt-2">
+                        <textarea name="comment" class="form-control" rows="3" placeholder="Chia sẻ cảm nhận của bạn..."></textarea>
+                    </div>
+
+                    <!-- 🖼️ Upload ảnh -->
+                    <div class="form-group mt-3">
+                        <label for="images">Hình ảnh (tối đa 5):</label>
+                        <input type="file" name="images" id="images" class="form-control-file" multiple accept="image/*"
+                               onchange="previewImages(event, [[${item.product.id}]])">
+                        <div class="image-preview d-flex mt-2" id="preview-[[${item.product.id}]]"></div>
+                    </div>
+
+                    <div class="text-right mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa fa-paper-plane"></i> Gửi đánh giá
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function previewImages(event, id) {
+                const previewContainer = document.getElementById(`preview-${id}`);
+                previewContainer.innerHTML = '';
+                const files = event.target.files;
+                for (let file of files) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.width = '70px';
+                        img.style.height = '70px';
+                        img.style.objectFit = 'cover';
+                        img.style.marginRight = '8px';
+                        img.style.borderRadius = '6px';
+                        previewContainer.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        </script>
     </section>
 </th:block>
 </body>

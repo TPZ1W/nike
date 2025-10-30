@@ -6,11 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -26,8 +24,13 @@ public class OrderController {
             return Map.of("status", false, "message", "Vui lòng đăng nhập");
         }
         var paymentUrl = orderService.placeOrder(user, order);
-        return Map.of("status", true, "message", "✅ Đặt hàng thành công", "paymentUrl", paymentUrl);
+        var result = new HashMap<String, Object>();
+        result.put("status", true);
+        result.put("message", "✅ Đặt hàng thành công");
+        result.put("paymentUrl", paymentUrl);
+        return result;
     }
+
 
     @Data
     @AllArgsConstructor

@@ -30,6 +30,9 @@ public class CartService {
 
     public void addToCart(User user, Long productId, Integer quantity, String size) {
         var product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
+        if (product.getStock() < quantity) {
+            throw new RuntimeException("Quantity product not enough");
+        }
         cartRepository.findByUserId(user.getId())
                 .ifPresentOrElse(cart -> {
                     cartItemRepository.findByCartIdAndSizeAndProductId(cart.getId(), size, productId)
@@ -65,6 +68,10 @@ public class CartService {
     public void updateQuantity(User user, Long productId, Integer newQuantity, String size) {
         if (newQuantity == null || newQuantity <= 0) {
             throw new IllegalArgumentException("Số lượng phải lớn hơn 0");
+        }
+        var product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
+        if (product.getStock() < newQuantity) {
+            throw new RuntimeException("Quantity product not enough");
         }
         var cart = cartRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng của người dùng"));

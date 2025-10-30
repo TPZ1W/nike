@@ -2,7 +2,11 @@ package com.proj.webprojrct.order.controller;
 
 import com.proj.webprojrct.order.repository.OrderRepository;
 import com.proj.webprojrct.order.service.OrderService;
+import com.proj.webprojrct.payment.PaymentService;
+import com.proj.webprojrct.payment.VnpayUtils;
+import com.proj.webprojrct.review.repository.ReviewRepository;
 import com.proj.webprojrct.user.entity.User;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -11,7 +15,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.NoSuchElementException;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 @Controller
 @RequestMapping("/orders")
@@ -19,13 +27,15 @@ import java.util.NoSuchElementException;
 public class OrderWebController {
     private final OrderService orderService;
     private final OrderRepository orderRepository;
+    private final PaymentService paymentService;
+    private final ReviewRepository reviewRepository;
 
     @GetMapping("history")
     public String orderHistoryPage(@AuthenticationPrincipal User user, Model model) {
         if (user == null) {
             return "redirect:/login";
         }
-        model.addAttribute("orders", orderRepository.findByUserId(user.getId()));
+        model.addAttribute("orders", orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId()));
         return "history-order";
     }
 
@@ -50,5 +60,82 @@ public class OrderWebController {
     @GetMapping("checkout/success")
     public String checkoutSuccessPage() {
         return "checkout-success";
+    }
+
+    @GetMapping("vnpay/callback")
+    public String vnpayCallback(Model model, HttpServletRequest request) {
+        String txn = request.getParameter("vnp_TxnRef");
+        try {
+            Map<String, Object> fields = new HashMap<>();
+            for (var params = request.getParameterNames(); params.hasMoreElements(); ) {
+                String fieldName = URLEncoder.encode((String) params.nextElement(), StandardCharsets.US_ASCII);
+                String fieldValue = URLEncoder.encode(request.getParameter(fieldName), StandardCharsets.US_ASCII);
+                if ((fieldValue != null) && (!fieldValue.isEmpty())) {
+                    fields.put(fieldName, fieldValue);
+                }
+            }
+
+            String vnp_SecureHash = request.getParameter("vnp_SecureHash");
+            fields.remove("vnp_SecureHashType");
+            fields.remove("vnp_SecureHash");
+            String signValue = hashAllFields(fields);
+            orderRepository.findByTxnId(txn).ifPresent(order -> {
+                if (signValue.equals(vnp_SecureHash)) {
+                    order.setStatus("00".equals(request.getParameter("vnp_ResponseCode")) ? "paid" : "failed");
+                } else {
+                    order.setStatus("failed");
+                }
+                orderRepository.save(order);
+            });
+        } catch (Exception e) {
+            orderRepository.findByTxnId(txn).ifPresent(order -> {
+                order.setStatus("failed");
+                orderRepository.save(order);
+            });
+        }
+        return "vnpay-callback";
+    }
+
+    public static String hashAllFields(Map<String, ?> fields) {
+        List<String> fieldNames = new ArrayList<>(fields.keySet());
+        Collections.sort(fieldNames);
+        StringBuilder sb = new StringBuilder();
+        var itr = fieldNames.iterator();
+        while (itr.hasNext()) {
+            String fieldName = (String) itr.next();
+            String fieldValue = (String) fields.get(fieldName);
+            if ((fieldValue != null) && (!fieldValue.isEmpty())) {
+                sb.append(fieldName);
+                sb.append("=");
+                sb.append(fieldValue);
+            }
+            if (itr.hasNext()) {
+                sb.append("&");
+            }
+        }
+        return hmacSHA512(VnpayUtils.VNP_SECRET_KEY_VALUE, sb.toString());
+    }
+
+    public static String hmacSHA512(final String key, final String data) {
+        try {
+
+            if (key == null || data == null) {
+                throw new NullPointerException();
+            }
+            final Mac hmac512 = Mac.getInstance("HmacSHA512");
+            byte[] hmacKeyBytes = key.getBytes();
+            final SecretKeySpec secretKey = new SecretKeySpec(hmacKeyBytes, "HmacSHA512");
+            hmac512.init(secretKey);
+            byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
+            byte[] result = hmac512.doFinal(dataBytes);
+            StringBuilder sb = new StringBuilder(2 * result.length);
+            for (byte b : result) {
+                sb.append(String.format("%02x", b & 0xff));
+            }
+            return sb.toString();
+
+        } catch (Exception ex) {
+            return "";
+        }
     }
 }

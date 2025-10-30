@@ -5,6 +5,7 @@ import com.proj.webprojrct.product.entity.Color;
 import com.proj.webprojrct.product.entity.Product;
 import com.proj.webprojrct.product.entity.Size;
 import com.proj.webprojrct.product.service.ProductService;
+import com.proj.webprojrct.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
@@ -23,6 +24,7 @@ import java.util.Optional;
 public class ProductViewController {
     private final ProductService productService;
     private final CategoryRepo categoryRepo;
+    private final ReviewRepository reviewRepository;
 
     @GetMapping
     public String productsPage(
@@ -46,17 +48,19 @@ public class ProductViewController {
         model.addAttribute("selectedPrice", price);
         model.addAttribute("selectedSort", sort);
         model.addAttribute("pageTitle", "Sản phẩm - NiceStore");
-
         return "products";
     }
 
     @GetMapping("{id}")
     public String productDetailPage(@PathVariable Long id, Model model) {
+        var p = productService.getProductById(id);
         model.addAttribute("productId", id);
         model.addAttribute("pageTitle", "Product Detail - NiceStore");
-        model.addAttribute("product", productService.getProductById(id));
+        model.addAttribute("product", p);
         model.addAttribute("sizes", Size.values());
         model.addAttribute("color", Color.values());
+
+        model.addAttribute("reviews", reviewRepository.findByProductOrderByCreatedAtDesc(p));
         return "product-detail";
     }
 }

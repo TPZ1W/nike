@@ -1,4 +1,3 @@
-
 package com.proj.webprojrct.order.entity;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -14,7 +13,7 @@ import lombok.Setter;
 import java.util.List;
 
 @Entity
-@Table(name = "orders") // Thay đổi tên bảng để tránh từ khóa SQL "order"
+@Table(name = "orders")
 @Getter
 @Setter
 @NoArgsConstructor
