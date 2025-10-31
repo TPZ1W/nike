@@ -28,8 +28,6 @@
     <div class="container-fluid">
         <div class="d-flex justify-content-between">
             <div>
-                <a href="#"><i class="fas fa-map-marker-alt me-1"></i> Tìm cửa hàng</a>
-                <a href="#">Trợ giúp</a>
             </div>
             <div id="auth-section">
                 <a href="/register" class="auth-anon">Tham gia</a>
@@ -155,18 +153,22 @@
                     usernameSpan.textContent = data.name;
                     authAnon.forEach(el => el.style.display = "none");
                     authUser.forEach(el => el.style.display = "inline-block");
+                    window.isLogin = true;
                 } else {
                     authAnon.forEach(el => el.style.display = "inline-block");
                     authUser.forEach(el => el.style.display = "none");
+                    window.isLogin = false;
                 }
             } else {
                 authAnon.forEach(el => el.style.display = "inline-block");
                 authUser.forEach(el => el.style.display = "none");
+                window.isLogin = false;
             }
         } catch (err) {
             // Not logged in → show login/register
             authAnon.forEach(el => el.style.display = "inline-block");
             authUser.forEach(el => el.style.display = "none");
+            window.isLogin = false;
         }
 
         // Optional: logout button clears cookie and redirects

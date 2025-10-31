@@ -24,6 +24,8 @@ public class Order extends BaseEntity {
     private User user;
 
     private Double totalAmount;
+    private Double totalDiscount;
+    private Double finalAmount;
     private Integer quantity;
     private String phone;
     private String status; // pending, confirmed, shipping, completed, canceled

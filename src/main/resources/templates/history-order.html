@@ -128,10 +128,10 @@
                 <div>
                     <span class="order-status"
                           th:classappend="'status-' + ${order.status}">
-                        <span th:switch="${order.status}">
+                        <span th:switch="${order.status.toLowerCase()}">
                             <span th:case="'pending'">🟡 Đang chờ xác nhận</span>
                             <span th:case="'confirmed'">🔵 Đã xác nhận</span>
-                            <span th:case="'WAITING_FOR_PAYMENT'">💳 Đang chờ thanh toán</span>
+                            <span th:case="'waiting_for_payment'">💳 Đang chờ thanh toán</span>
                             <span th:case="'shipping'">🚚 Đang giao hàng</span>
                             <span th:case="'completed'">✅ Đã hoàn thành</span>
                             <span th:case="'paid'">✅ Thanh toán VNPAY thành công</span>
@@ -150,6 +150,10 @@
 
             <div>
                 <p><strong>Phương thức thanh toán:</strong> <span th:text="${order.paymentMethod}">VNPAY</span></p>
+                <p th:if="${order.coupon != null}">
+                    <strong>Mã giảm giá:</strong>
+                    <span th:text="${order.coupon.name}">COUPON_NAME</span>
+                </p>
                 <p><strong>Địa chỉ giao hàng:</strong> <span
                         th:text="${order.shippingAddress}">123 Nguyễn Trãi, TP.HCM</span></p>
             </div>
@@ -173,8 +177,14 @@
                 </div>
 
                 <div class="order-total">
-                    Tổng cộng:
-                    <span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'">1.500.000 ₫</span>
+                    <del class="text-dark" th:if="${order.totalDiscount > 0}">
+                        Tổng cộng:
+                        <span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'">1.500.000 ₫</span>
+                    </del>
+                    <p>
+                        Tổng cộng:
+                        <span th:text="${#numbers.formatDecimal(order.finalAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'">1.500.000 ₫</span>
+                    </p>
                 </div>
             </div>
 

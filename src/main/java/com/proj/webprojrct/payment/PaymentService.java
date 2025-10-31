@@ -67,26 +67,6 @@ public class PaymentService {
         return Map.of("param", vnpParams, "url", VnpayUtils.VNP_QUERY_URL);
     }
 
-//    public void confirmOrder(String vnpTxnRef, String transDate) {
-//        var vnpParams = buildParamQuery(vnpTxnRef, transDate);
-//        var headers = createHeaders();
-//        var httpEntity = new HttpEntity<>(vnpParams, headers);
-//        var response = restTemplate.postForEntity(VnpayUtils.VNP_QUERY_URL, httpEntity, Object.class);
-//        orderRepository.findByTxnId(vnpTxnRef).ifPresent(order -> {
-//            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody() instanceof Map<?, ?> map) {
-//                if (map.containsKey("vnp_ResponseCode")
-//                        && "00".equals(map.get("vnp_ResponseCode"))
-//                        && map.containsKey("vnp_TransactionStatus")
-//                        && "00".equals(map.get("vnp_TransactionStatus"))) {
-//                    order.setStatus("paid");
-//                } else {
-//                    order.setStatus("failed");
-//                }
-//            }
-//            orderRepository.save(order);
-//        });
-//    }
-
 
     @NotNull
     private HashMap<String, String> buildParamVnPay(
