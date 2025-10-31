@@ -87,9 +87,6 @@
                         <button id="add-to-cart-btn" class="btn-add-to-cart" disabled>
                             <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ hàng
                         </button>
-                        <button class="btn-wishlist">
-                            <i class="far fa-heart"></i>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -97,42 +94,6 @@
 
         <!-- Reviews Section -->
         <div class="reviews-section">
-            <div class="reviews-header">
-                <h3>Đánh giá sản phẩm</h3>
-                <div class="reviews-summary">
-                    <div class="average-rating" id="average-rating">0.0</div>
-                    <div class="stars-display" id="stars-display">☆☆☆☆☆</div>
-                    <div class="total-reviews" id="total-reviews">0 đánh giá</div>
-                </div>
-            </div>
-
-            <!-- Review Form (only for logged-in users) -->
-            <div id="review-form-container" style="display: none;">
-                <div class="review-form">
-                    <h5>Viết đánh giá của bạn</h5>
-                    <form id="review-form">
-                        <div class="mb-3">
-                            <label class="form-label">Đánh giá:</label>
-                            <div class="star-rating" id="star-rating">
-                                <span class="star" data-rating="1">★</span>
-                                <span class="star" data-rating="2">★</span>
-                                <span class="star" data-rating="3">★</span>
-                                <span class="star" data-rating="4">★</span>
-                                <span class="star" data-rating="5">★</span>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <input type="text" class="form-control" id="review-title" placeholder="Tiêu đề (tùy chọn)">
-                        </div>
-                        <div class="mb-3">
-                            <textarea class="review-textarea" id="review-comment"
-                                      placeholder="Chia sẻ trải nghiệm của bạn..." required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm">Gửi đánh giá</button>
-                    </form>
-                </div>
-            </div>
-
             <!-- Login Prompt (for guests) -->
             <div id="login-prompt" class="text-center p-3" style="background: #f8f9fa; border-bottom: 1px solid #eee;">
                 <p class="mb-0">Bạn cần <a href="/login">đăng nhập</a> để có thể viết đánh giá và bình luận.</p>
@@ -200,14 +161,18 @@
         }
 
         document.addEventListener("DOMContentLoaded", function () {
-
+            const promtLogin = document.getElementById('login-prompt');
             // Elements
             const sizeButtons = document.querySelectorAll(".size-btn");
             const qtyInput = document.getElementById("quantity-input");
             const decreaseBtn = document.getElementById("decrease-qty");
             const increaseBtn = document.getElementById("increase-qty");
             const addToCartBtn = document.getElementById("add-to-cart-btn");
-
+            setTimeout(() => {
+                if(window.isLogin) {
+                    promtLogin.style.display = "none";
+                 }
+            }, 100);
             // State
             let selectedSize = null;
 

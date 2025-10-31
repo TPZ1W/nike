@@ -11,7 +11,7 @@
             margin: 40px auto;
             background: #fff;
             border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             padding: 30px;
         }
 
@@ -28,11 +28,30 @@
             font-size: 14px;
         }
 
-        .status-pending { background: #fff3cd; color: #856404; }
-        .status-confirmed { background: #cce5ff; color: #004085; }
-        .status-shipping { background: #d1ecf1; color: #0c5460; }
-        .status-completed { background: #d4edda; color: #155724; }
-        .status-canceled { background: #f8d7da; color: #721c24; }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-confirmed {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .status-shipping {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-canceled {
+            background: #f8d7da;
+            color: #721c24;
+        }
 
         .product-row {
             display: flex;
@@ -76,27 +95,36 @@
             display: inline-flex;
             font-size: 24px;
         }
+
         .rating input {
             display: none;
         }
+
         .rating label {
             cursor: pointer;
             color: #ccc;
             transition: color 0.2s;
         }
+
         .rating input:checked ~ label,
         .rating label:hover,
         .rating label:hover ~ label {
             color: #f1c40f;
         }
+
         .review-box {
             background-color: #fafafa;
         }
+
         .image-preview img {
             transition: transform 0.2s;
         }
+
         .image-preview img:hover {
             transform: scale(1.05);
+        }
+        .product-row:hover .product-info-row {
+            text-decoration: underline;
         }
     </style>
 </th:block>
@@ -109,10 +137,10 @@
             <p>
                 Ngày đặt: <strong th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></strong><br>
                 Trạng thái:
-                <span th:switch="${order.status}">
+                <span th:switch="${order.status.toLowerCase()}">
                             <span th:case="'pending'">🟡 Đang chờ xác nhận</span>
                             <span th:case="'confirmed'">🔵 Đã xác nhận</span>
-                            <span th:case="'WAITING_FOR_PAYMENT'">💳 Đang chờ thanh toán</span>
+                            <span th:case="'waiting_for_payment'">💳 Đang chờ thanh toán</span>
                             <span th:case="'shipping'">🚚 Đang giao hàng</span>
                             <span th:case="'completed'">✅ Đã hoàn thành</span>
                             <span th:case="'paid'">✅ Thanh toán VNPAY thành công</span>
@@ -142,7 +170,7 @@
                 <p>
                     <strong>Phương thức:</strong> <span th:text="${order.paymentMethod}">VNPAY</span><br>
                     <strong>Tổng tiền:</strong>
-                    <span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"
+                    <span th:text="${#numbers.formatDecimal(order.finalAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"
                           class="text-danger font-weight-bold">1.500.000 ₫</span><br>
                     <strong>Mã giảm giá:</strong>
                     <span th:text="${order.coupon != null ? order.coupon.code : '-'}">-</span>
@@ -153,7 +181,8 @@
         <hr>
 
         <h5>Sản phẩm trong đơn</h5>
-        <div th:each="item : ${order.items}" class="product-row">
+        <div th:each="item : ${order.items}" class="product-row"
+             th:onclick="window.location.href='/products/' + [[${item.product.id}]]" style="cursor: pointer">
             <!-- ✅ Hiển thị ảnh đầu tiên -->
             <div>
                 <img th:src="${#lists.isEmpty(item.product.images)} ?
@@ -162,7 +191,7 @@
                      alt="Product">
             </div>
             <div class="product-info">
-                <div><strong th:text="${item.product.name}">Áo Nike Air</strong></div>
+                <div class="product-info-row"><strong th:text="${item.product.name}">Áo Nike Air</strong></div>
                 <small>Số lượng: <span th:text="${item.quantity}">1</span></small><br>
                 <div class="d-flex flex-wrap mt-1">
                     <div th:each="img : ${item.product.images}" class="mr-1">
@@ -179,17 +208,25 @@
         </div>
 
         <div class="order-summary">
-            <p><strong>Tổng cộng:</strong>
+            <del th:if="${order.totalDiscount > 0}" class="text-dark">
+                <strong>Tổng cộng:</strong>
                 <span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"
+                      class="text-dark">1.500.000 ₫</span>
+            </del>
+            <p>
+                <strong>Tổng cộng:</strong>
+                <span th:text="${#numbers.formatDecimal(order.finalAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"
                       class="text-danger">1.500.000 ₫</span>
             </p>
 
-            <div th:if="${order.status == 'pending' || order.status == 'confirmed'}">
-                <form th:action="@{'/orders/' + ${order.id} + '/cancel'}" method="post">
-                    <button type="submit" class="btn btn-danger btn-cancel">
-                        <i class="fa fa-times"></i> Hủy đơn hàng
-                    </button>
-                </form>
+            <div th:if="${order.status.toLowerCase() == 'pending'
+           || order.status.toLowerCase() == 'confirmed'
+           || order.status.toLowerCase() == 'paid'}">
+                <button type="button"
+                        class="btn btn-danger btn-cancel"
+                        th:data-order-id="${order.id}">
+                    <i class="fa fa-times"></i> Hủy đơn hàng
+                </button>
             </div>
         </div>
 
@@ -199,9 +236,7 @@
             </a>
         </div>
 
-        <!-- 💬 Phần đánh giá sản phẩm (chỉ hiển thị khi đơn hoàn thành hoặc thanh toán thành công) -->
-        <!-- 💬 Phần đánh giá sản phẩm -->
-        <div th:if="${order.status == 'completed' or order.status == 'paid'}" class="mt-5">
+        <div th:if="${order.status.toLowerCase() == 'completed'}" class="mt-5">
             <h5>Đánh giá sản phẩm</h5>
 
             <div th:each="item : ${order.items}" class="review-box border rounded p-3 my-3">
@@ -213,16 +248,58 @@
                     </div>
                 </div>
 
+                <div th:if="${item.reviewed}" class="mt-3 border rounded bg-light p-3">
+                    <p class="text-success mb-2">
+                        <i class="fa fa-check-circle"></i> Bạn đã đánh giá sản phẩm này
+                    </p>
+
+                    <div class="rating mb-2" style="color: #ffc107;">
+                        <!-- Lặp sao vàng theo rating -->
+                        <i class="fa fa-star" th:each="star : ${#numbers.sequence(1, item.review.rating)}"></i>
+                        <!-- Nếu muốn hiện sao trống -->
+                        <i class="fa fa-star-o text-muted" th:each="star : ${#numbers.sequence(item.review.rating + 1, 5)}"></i>
+                    </div>
+
+                    <h6 th:text="${item.review.title}" class="fw-bold" th:if="${item.review.title != null and !#strings.isEmpty(item.review.title)}"></h6>
+                    <p th:text="${item.review.comment}" class="mb-2"></p>
+
+                    <!-- Ảnh review -->
+                    <div th:if="${item.review.images != null and !#lists.isEmpty(item.review.images)}"
+                         class="d-flex flex-wrap mt-2">
+                        <img th:each="img : ${item.review.images}"
+                             th:src="${img}"
+                             alt="Ảnh đánh giá"
+                             style="width:80px; height:80px; object-fit:cover; border-radius:6px; margin-right:5px; margin-bottom:5px;">
+                    </div>
+                </div>
+
                 <!-- ⭐ Form đánh giá -->
-                <form th:action="@{'/reviews/add/' + ${item.product.id}}" method="post" enctype="multipart/form-data">
+                <form th:id="'review-form-' + ${item.product.id}" th:if="${!item.reviewed}"
+                      th:onsubmit="'submitReview(event, ' + ${item.product.id} + ')'"
+                      enctype="multipart/form-data">
+
                     <div class="form-group">
                         <label>Đánh giá:</label>
                         <div class="rating">
-                            <input type="radio" name="rating" value="5" id="star5-[[${item.product.id}]]"><label for="star5-[[${item.product.id}]]">★</label>
-                            <input type="radio" name="rating" value="4" id="star4-[[${item.product.id}]]"><label for="star4-[[${item.product.id}]]">★</label>
-                            <input type="radio" name="rating" value="3" id="star3-[[${item.product.id}]]"><label for="star3-[[${item.product.id}]]">★</label>
-                            <input type="radio" name="rating" value="2" id="star2-[[${item.product.id}]]"><label for="star2-[[${item.product.id}]]">★</label>
-                            <input type="radio" name="rating" value="1" id="star1-[[${item.product.id}]]"><label for="star1-[[${item.product.id}]]">★</label>
+                            <input type="radio" th:name="'rating-' + ${item.product.id}" value="5"
+                                   th:id="'star5-' + ${item.product.id}">
+                            <label th:for="'star5-' + ${item.product.id}">★</label>
+
+                            <input type="radio" th:name="'rating-' + ${item.product.id}" value="4"
+                                   th:id="'star4-' + ${item.product.id}">
+                            <label th:for="'star4-' + ${item.product.id}">★</label>
+
+                            <input type="radio" th:name="'rating-' + ${item.product.id}" value="3"
+                                   th:id="'star3-' + ${item.product.id}">
+                            <label th:for="'star3-' + ${item.product.id}">★</label>
+
+                            <input type="radio" th:name="'rating-' + ${item.product.id}" value="2"
+                                   th:id="'star2-' + ${item.product.id}">
+                            <label th:for="'star2-' + ${item.product.id}">★</label>
+
+                            <input type="radio" th:name="'rating-' + ${item.product.id}" value="1"
+                                   th:id="'star1-' + ${item.product.id}">
+                            <label th:for="'star1-' + ${item.product.id}">★</label>
                         </div>
                     </div>
 
@@ -231,15 +308,21 @@
                     </div>
 
                     <div class="form-group mt-2">
-                        <textarea name="comment" class="form-control" rows="3" placeholder="Chia sẻ cảm nhận của bạn..."></textarea>
+                <textarea name="comment" class="form-control" rows="3"
+                          placeholder="Chia sẻ cảm nhận của bạn..."></textarea>
                     </div>
 
                     <!-- 🖼️ Upload ảnh -->
                     <div class="form-group mt-3">
-                        <label for="images">Hình ảnh (tối đa 5):</label>
-                        <input type="file" name="images" id="images" class="form-control-file" multiple accept="image/*"
-                               onchange="previewImages(event, [[${item.product.id}]])">
-                        <div class="image-preview d-flex mt-2" id="preview-[[${item.product.id}]]"></div>
+                        <label th:for="'images-' + ${item.product.id}">Hình ảnh (tối đa 5):</label>
+                        <input type="file"
+                               th:id="'images-' + ${item.product.id}"
+                               name="images"
+                               class="form-control-file"
+                               multiple accept="image/*"
+                               th:onchange="'previewImages(event, ' + ${item.product.id} + ')'">
+                        <div class="image-preview d-flex mt-2"
+                             th:id="'preview-' + ${item.product.id}"></div>
                     </div>
 
                     <div class="text-right mt-3">
@@ -250,26 +333,98 @@
                 </form>
             </div>
         </div>
+        <script th:inline="javascript">
+            $(document).ready(function () {
+                // Khi nhấn nút "Hủy đơn hàng"
+                $(".btn-cancel").on("click", function () {
+                    const orderId = $(this).data("order-id");
+                    console.log(orderId)
+                    const btn = $(this);
+
+                    if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: `/orders/${orderId}/cancel`,
+                        type: "POST",
+                        contentType: "application/json",
+                        headers: {},
+                        success: function (result) {
+                            if (result.success) {
+                                alert(result.message || "Đã hủy đơn hàng thành công!");
+                                window.location.reload();
+                            } else {
+                                alert("Lỗi: " + (result.message || "Không thể hủy đơn hàng"));
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Lỗi khi gọi API hủy đơn:", error);
+                            alert("Có lỗi xảy ra, vui lòng thử lại sau.");
+                        }
+                    });
+                });
+            });
+        </script>
 
         <script>
-            function previewImages(event, id) {
-                const previewContainer = document.getElementById(`preview-${id}`);
-                previewContainer.innerHTML = '';
+            function submitReview(event, productId) {
+                event.preventDefault(); // Không reload trang
+
+                const form = document.getElementById("review-form-" + productId);
+                const formData = new FormData(form); // Lấy dữ liệu (bao gồm ảnh)
+                const rating = form.querySelector(`input[name="rating-${productId}"]:checked`);
+                if (rating) {
+                    formData.append("rating", rating.value);
+                } else {
+                    alert("Vui lòng chọn số sao đánh giá!");
+                    return;
+                }
+
+                // Gọi API AJAX
+                $.ajax({
+                    url: `/reviews/add/${productId}`,
+                    type: "POST",
+                    data: formData,
+                    processData: false, // bắt buộc khi gửi FormData
+                    contentType: false, // bắt buộc khi gửi FormData
+                    headers: {
+                        "X-CSRF-TOKEN": $("meta[name='_csrf']").attr("content")
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            alert(response.message);
+                            form.reset();
+                            $("#preview-" + productId).empty(); // clear preview ảnh
+                        } else {
+                            alert("Lỗi: " + response.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Lỗi khi gửi đánh giá:", error);
+                        alert("Có lỗi xảy ra, vui lòng thử lại.");
+                    }
+                });
+            }
+
+            function previewImages(event, productId) {
                 const files = event.target.files;
-                for (let file of files) {
+                const previewContainer = document.getElementById("preview-" + productId);
+                previewContainer.innerHTML = "";
+
+                Array.from(files).forEach(file => {
                     const reader = new FileReader();
                     reader.onload = e => {
-                        const img = document.createElement('img');
+                        const img = document.createElement("img");
                         img.src = e.target.result;
-                        img.style.width = '70px';
-                        img.style.height = '70px';
-                        img.style.objectFit = 'cover';
-                        img.style.marginRight = '8px';
-                        img.style.borderRadius = '6px';
+                        img.style.width = "80px";
+                        img.style.height = "80px";
+                        img.style.marginRight = "5px";
+                        img.style.borderRadius = "5px";
                         previewContainer.appendChild(img);
                     };
                     reader.readAsDataURL(file);
-                }
+                });
             }
         </script>
     </section>

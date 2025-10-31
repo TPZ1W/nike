@@ -2,14 +2,17 @@ package com.proj.webprojrct.order.service;
 
 import com.proj.webprojrct.cart.repository.CartRepository;
 import com.proj.webprojrct.order.controller.OrderController;
+import com.proj.webprojrct.order.dto.*;
 import com.proj.webprojrct.order.entity.Order;
 import com.proj.webprojrct.order.entity.OrderItem;
 import com.proj.webprojrct.order.repository.OrderItemRepository;
 import com.proj.webprojrct.order.repository.OrderRepository;
 import com.proj.webprojrct.payment.PaymentService;
+import com.proj.webprojrct.payment.VnpayDTO;
 import com.proj.webprojrct.product.repository.ProductRepository;
 import com.proj.webprojrct.promotion.entity.Coupon;
 import com.proj.webprojrct.promotion.repository.CouponRepository;
+import com.proj.webprojrct.review.repository.ReviewRepository;
 import com.proj.webprojrct.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,10 +34,33 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final ProductRepository productRepository;
     private final PaymentService paymentService;
+    private final ReviewRepository reviewRepository;
+
+    public void cancelOrder(User user, Long orderId) {
+        var order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Bạn không có quyền hủy đơn hàng này.");
+        }
+        if (!List.of("PENDING", "WAITING_FOR_PAYMENT", "PAID").contains(order.getStatus().toUpperCase())) {
+            throw new RuntimeException("Chỉ có thể hủy đơn hàng ở trạng thái chờ xử lý hoặc chờ thanh toán.");
+        }
+        order.setStatus("CANCELED");
+        orderRepository.save(order);
+
+        for (var item : order.getItems()) {
+            productRepository.findById(item.getProduct().getId()).ifPresent(pt -> {
+                pt.setStock(pt.getStock() + item.getQuantity());
+                productRepository.save(pt);
+            });
+        }
+        Optional.ofNullable(order.getCoupon()).ifPresent(coupon -> {
+            coupon.setUsedCount(coupon.getUsedCount() - 1);
+            couponRepository.save(coupon);
+        });
+    }
 
     public String placeOrder(User user, OrderController.OrderRequest request) {
-        var cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng cho người dùng."));
+        var cart = cartRepository.findByUserId(user.getId()).orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng cho người dùng."));
         if (cart.getItems().isEmpty()) {
             throw new RuntimeException("Giỏ hàng trống, không thể đặt hàng.");
         }
@@ -62,13 +88,17 @@ public class OrderService {
         order.setShippingAddress(request.getShippingAddress());
         order.setCoupon(couponItem);
         double totalAfterDiscount = totalBeforeDiscount;
+        double bonusDiscount = 0.0;
         if (couponItem != null) {
             order.setCoupon(couponItem);
-            totalAfterDiscount = totalBeforeDiscount - couponItem.calculateDiscount(totalBeforeDiscount);
+            bonusDiscount = couponItem.calculateDiscount(totalBeforeDiscount);
+            totalAfterDiscount = totalBeforeDiscount - bonusDiscount;
             couponItem.setUsedCount(couponItem.getUsedCount() + 1);
             couponRepository.save(couponItem);
         }
-        order.setTotalAmount(totalAfterDiscount);
+        order.setTotalAmount(totalBeforeDiscount);
+        order.setFinalAmount(totalAfterDiscount);
+        order.setTotalDiscount(bonusDiscount);
 
         List<OrderItem> orderItems = new ArrayList<>();
         for (var item : cart.getItems()) {
@@ -95,13 +125,93 @@ public class OrderService {
         cartRepository.delete(cart);
 
         if ("VNPAY".equalsIgnoreCase(request.getPaymentMethod())) {
-            var vnPayOrder = paymentService.createPayment(
-                    new PaymentService.VnPayBody(newOrder.getTotalAmount(), "Thanh toan"));
+            VnpayDTO vnPayOrder = paymentService.createPayment(new PaymentService.VnPayBody(newOrder.getTotalAmount(), "Thanh toan"));
             newOrder.setTxnId(vnPayOrder.getTxnId());
             newOrder.setStatus("WAITING_FOR_PAYMENT");
             orderRepository.save(newOrder);
             return vnPayOrder.getPaymentUrl();
         }
         return null;
+    }
+
+    public OrderDTO toOrderDTO(Order order, User user) {
+        List<OrderItemDTO> itemDTOs = order.getItems().stream().map(item -> {
+            boolean reviewed = reviewRepository.existsByUserAndProduct(user, item.getProduct());
+            var p = item.getProduct();
+            var productDTO = ProductOrderDTO.builder()
+                    .id(p.getId())
+                    .name(p.getName())
+                    .slug(p.getSlug())
+                    .subTitle(p.getSubTitle())
+                    .description(p.getDescription())
+                    .price(p.getPrice())
+                    .stock(p.getStock())
+                    .isDelete(p.isDelete())
+                    .images(p.getImages())
+                    .categoryId(p.getCategory() != null ? p.getCategory().getId() : null)
+                    .categoryName(p.getCategory() != null ? p.getCategory().getName() : null)
+                    .build();
+            return OrderItemDTO.builder()
+                    .id(item.getId())
+                    .productId(item.getProduct().getId())
+                    .productName(item.getProduct().getName())
+                    .productImages(item.getProduct().getImages())
+                    .quantity(item.getQuantity())
+                    .productPrice(item.getProductPrice())
+                    .totalPrice(item.getTotalPrice())
+                    .size(item.getSize())
+                    .reviewed(reviewed)
+                    .product(productDTO)
+                    .build();
+        }).toList();
+
+        CouponOrderDTO couponDTO = null;
+        if (order.getCoupon() != null) {
+            var c = order.getCoupon();
+            couponDTO = CouponOrderDTO.builder()
+                    .id(c.getId())
+                    .code(c.getCode())
+                    .name(c.getName())
+                    .description(c.getDescription())
+                    .discountType(c.getDiscountType())
+                    .discountValue(c.getDiscountValue())
+                    .minOrderAmount(c.getMinOrderAmount())
+                    .maxDiscountAmount(c.getMaxDiscountAmount())
+                    .usageLimit(c.getUsageLimit())
+                    .usedCount(c.getUsedCount())
+                    .startDate(c.getStartDate())
+                    .endDate(c.getEndDate())
+                    .isActive(c.getIsActive())
+                    .validNow(c.isValid()) // gọi trực tiếp hàm helper trong entity
+                    .remainingUses((double) (c.getUsageLimit() - c.getUsedCount()))
+                    .build();
+        }
+        UserOrderDTO userDTO = null;
+        if (order.getUser() != null) {
+            var u = order.getUser();
+            userDTO = UserOrderDTO.builder()
+                    .id(u.getId())
+                    .fullName(u.getFullName())   // hoặc getName() tùy entity
+                    .email(u.getEmail())
+                    .phone(u.getPhone())
+                    .build();
+        }
+
+        return OrderDTO.builder()
+                .id(order.getId())
+                .totalAmount(order.getTotalAmount())
+                .totalDiscount(order.getTotalDiscount())
+                .finalAmount(order.getFinalAmount())
+                .quantity(order.getQuantity())
+                .phone(order.getPhone())
+                .status(order.getStatus())
+                .paymentMethod(order.getPaymentMethod())
+                .shippingAddress(order.getShippingAddress())
+                .txnId(order.getTxnId())
+                .items(itemDTOs)
+                .createdAt(order.getCreatedAt())
+                .coupon(couponDTO) // gán coupon nếu có
+                .user(userDTO)
+                .build();
     }
 }
